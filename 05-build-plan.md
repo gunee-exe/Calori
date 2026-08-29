@@ -12,7 +12,7 @@
 |---|---|
 | App name | **Calori** |
 | Application ID | `com.usmanghani.calori` |
-| Toolchain | Upgrade to **Flutter 3.44+** before writing code |
+| Toolchain | **Flutter 3.47.2 / Dart 3.13.2** (upgraded from 3.32.7) |
 | Codegen | Full: `drift_dev` + `riverpod_generator` + `freezed` via one `build_runner watch` |
 | Food data | Multi-source, global — [03-food-data.md](03-food-data.md) |
 | Repo | **Public** — portfolio piece |
@@ -39,7 +39,7 @@ is written **during Phase 0**, and every food source sits behind a swappable ada
 
 Do this first; every later phase assumes it.
 
-1. `flutter upgrade` to 3.44+ (verify `flutter --version` reports Dart ≥ 3.12).
+1. `flutter upgrade` (landed on 3.47.2 / Dart 3.13.2).
 2. `git init` and commit the scaffold as-is, so the reset is reviewable.
 3. Delete the counter template in `lib/main.dart` and the stock `test/widget_test.dart` (it
    breaks the moment `MyApp` is replaced).
@@ -52,10 +52,14 @@ Do this first; every later phase assumes it.
      `<uses-permission android:name="android.permission.INTERNET"/>`**. It currently exists only
      in the debug and profile manifests, so a release build has no network at all.
    - `pubspec.yaml` — `name: calori`, real description.
-5. `android/gradle.properties` — delete `android.enableJetifier=true`. Nothing in this stack
-   needs Jetifier and it slows every build.
-6. `.gitignore` — add what the template omits: `android/local.properties` (currently tracked, and
-   it contains machine-specific paths), `android/key.properties`, `*.jks`, `*.keystore`.
+5. **Realign Gradle with the 3.47 template.** The scaffold shipped Gradle 8.12, which is below
+   Flutter 3.47's 8.14 minimum — the release build fails outright until this is done. Take
+   Gradle **9.3.1**, AGP **9.1.0**, Kotlin **2.4.0** and **Java 17** from a throwaway
+   `flutter create`, and add `android.newDsl=false` / `android.builtInKotlin=false` to
+   `android/gradle.properties`. Delete `android.enableJetifier=true` while there — nothing in
+   this stack needs Jetifier and it slows every build.
+6. `.gitignore` — nothing to do: `android/.gitignore` already covers `local.properties`,
+   `key.properties`, `*.jks` and `*.keystore`.
 7. Create `build.yaml`. **Without this, `drift_dev` rejects `CREATE VIRTUAL TABLE ... USING fts5`
    at codegen time:**
    ```yaml
@@ -86,17 +90,35 @@ dependencies:
   freezed_annotation: ^3.x
   json_annotation: ^4.x
   image_picker: ^1.2.3
-  camera: ^0.12.0+2
-  flutter_image_compress: ^2.x
-  http: ^1.x
-  intl: ^0.20.x
-  google_fonts: ^6.x              # Poppins; or bundle the TTFs to keep it offline
+  http: ^1.6.0
+  intl: ^0.20.3
 
 dev_dependencies:
   build_runner, drift_dev, riverpod_generator, freezed, json_serializable,
-  custom_lint, riverpod_lint, flutter_lints
+  flutter_lints
 ```
 
+Poppins is bundled in `assets/fonts` (SIL OFL) rather than pulled via `google_fonts`, which
+downloads on first use and would break the manual logging path's offline guarantee on a fresh
+install.
+
+`riverpod_lint` is **not** a dev dependency. From 3.x it runs on Dart's native analysis-server
+plugin system rather than `custom_lint`, and is installed from `analysis_options.yaml`:
+
+```yaml
+plugins:
+  riverpod_lint: ^3.1.8
+```
+
+Adding `custom_lint` alongside it makes resolution fail outright — riverpod_lint 3.1.8 needs
+`analyzer_plugin ^0.14`, which no current `custom_lint` supports.
+
+> **Not** `flutter_image_compress`: its Gradle configuration throws an NPE under
+> AGP 9.1, and `image_picker`'s own `maxWidth` / `imageQuality` parameters already
+> produce the 1024px, q80 downscale the Worker call needs. `camera` is deferred to
+> Phase 6 rather than carried unused, and its AGP 9 status should be rechecked when
+> the custom viewfinder is actually wired up.
+>
 > Do **not** add `sqlite3_flutter_libs` — it is deprecated (`0.6.0+eol`). From `sqlite3` 3.x,
 > SQLite is bundled automatically and the prebuilt binaries ship with `SQLITE_ENABLE_FTS5`.
 > Never point it at system SQLite (`source: system`); that reintroduces exactly the FTS5 roulette
