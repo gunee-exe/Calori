@@ -1,4 +1,4 @@
-package com.example.caltracker
+package com.usmanghani.calori
 
 import io.flutter.embedding.android.FlutterActivity
 

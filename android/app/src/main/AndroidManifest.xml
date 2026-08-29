@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required by the photo-analysis Worker call. Debug and profile manifests
+         declare this separately for hot reload; without it here, release builds
+         have no network at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="caltracker"
+        android:label="Calori"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

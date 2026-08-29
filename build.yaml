@@ -1,0 +1,21 @@
+# Code generation config. One `dart run build_runner watch` serves drift,
+# freezed, riverpod_generator and json_serializable together.
+
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Without `modules: [fts5]`, drift_dev rejects the
+          # `CREATE VIRTUAL TABLE foods_fts USING fts5(...)` declaration in
+          # lib/data/foods/foods.drift at analysis time. This is the single
+          # most common way the food search fails to build.
+          sqlite:
+            version: "3.45"
+            modules:
+              - fts5
+
+          # Generate typed row classes for named queries in .drift files, and
+          # keep the generated code out of the way of the analyzer.
+          named_parameters: true
+          write_from_json_string_constructor: false
