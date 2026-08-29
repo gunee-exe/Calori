@@ -1,0 +1,5 @@
+# Downloaded datasets and build scratch. Regenerable; never committed.
+.cache/
+out/
+__pycache__/
+*.pyc

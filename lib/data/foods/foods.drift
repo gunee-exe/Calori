@@ -69,20 +69,40 @@ CREATE TABLE meta (
 
 -- Ranked full-text search.
 --
--- bm25() returns NEGATIVE scores where more negative is a better match, so
--- ascending order is correct here. It reads wrong and is right; do not "fix" it.
--- length(name) breaks ties toward the shorter, more generic entry, so "rice"
--- outranks "rice, white, long-grain, parboiled, enriched, dry".
+-- Three things order the results, in this priority:
 --
--- :query must be built by buildFtsQuery() in Dart, never passed raw — FTS5 has
--- its own operator grammar and unescaped user input is both a syntax error and
--- a denial-of-service vector.
-searchFoods(:query AS TEXT, :lim AS INT):
+--   1. A prefix tier. bm25 alone is a poor fit for short food names: it
+--      rewards term frequency relative to document length, so searching
+--      "rice" surfaces "Snacks, rice cakes, brown rice, buckwheat" — which
+--      says "rice" twice — above plain rice. Preferring names that *begin*
+--      with what was typed fixes that, and matches what someone typing into a
+--      search box expects.
+--
+--   2. bm25() within a tier. It returns NEGATIVE scores where more negative
+--      is a better match, so ascending is correct here. It reads wrong and is
+--      right; do not "fix" it.
+--
+--   3. Name length, so the shorter, more generic entry wins a tie: "Rice, red"
+--      over "Rice, red, long-grain, parboiled, enriched".
+--
+-- :query must be built by buildFtsQuery() in Dart and :prefix by the matching
+-- normaliser. Never pass raw input to either — FTS5 has its own operator
+-- grammar, and unescaped text is both a syntax error and a denial-of-service
+-- vector.
+searchFoods(:query AS TEXT, :prefix AS TEXT, :lim AS INT):
     SELECT f.**, bm25(foods_fts) AS score
     FROM foods_fts
     JOIN foods f ON f.id = foods_fts.rowid
     WHERE foods_fts MATCH :query
-    ORDER BY score, length(f.name)
+    ORDER BY
+        (CASE
+            WHEN f.name_normalised = :prefix THEN 0
+            WHEN f.name_normalised LIKE :prefix || ' %' THEN 1
+            WHEN f.name_normalised LIKE :prefix || '%' THEN 2
+            ELSE 3
+        END),
+        score,
+        length(f.name)
     LIMIT :lim;
 
 foodById(:id AS INT):

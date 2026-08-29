@@ -1338,11 +1338,16 @@ abstract class _$FoodsDb extends GeneratedDatabase {
   late final Meta meta = Meta(this);
   Selectable<SearchFoodsResult> searchFoods({
     required String query,
+    required String prefix,
     required int lim,
   }) {
     return customSelect(
-      'SELECT"f"."id" AS "nested_0.id", "f"."name" AS "nested_0.name", "f"."name_normalised" AS "nested_0.name_normalised", "f"."source" AS "nested_0.source", "f"."source_id" AS "nested_0.source_id", "f"."locale_hint" AS "nested_0.locale_hint", "f"."kcal_100g" AS "nested_0.kcal_100g", "f"."protein_100g" AS "nested_0.protein_100g", "f"."carbs_100g" AS "nested_0.carbs_100g", "f"."fat_100g" AS "nested_0.fat_100g", bm25(foods_fts) AS score FROM foods_fts JOIN foods AS f ON f.id = foods_fts."rowid" WHERE foods_fts MATCH ?1 ORDER BY score, length(f.name) LIMIT ?2',
-      variables: [Variable<String>(query), Variable<int>(lim)],
+      'SELECT"f"."id" AS "nested_0.id", "f"."name" AS "nested_0.name", "f"."name_normalised" AS "nested_0.name_normalised", "f"."source" AS "nested_0.source", "f"."source_id" AS "nested_0.source_id", "f"."locale_hint" AS "nested_0.locale_hint", "f"."kcal_100g" AS "nested_0.kcal_100g", "f"."protein_100g" AS "nested_0.protein_100g", "f"."carbs_100g" AS "nested_0.carbs_100g", "f"."fat_100g" AS "nested_0.fat_100g", bm25(foods_fts) AS score FROM foods_fts JOIN foods AS f ON f.id = foods_fts."rowid" WHERE foods_fts MATCH ?1 ORDER BY(CASE WHEN f.name_normalised = ?2 THEN 0 WHEN f.name_normalised LIKE ?2 || \' %\' THEN 1 WHEN f.name_normalised LIKE ?2 || \'%\' THEN 2 ELSE 3 END), score, length(f.name) LIMIT ?3',
+      variables: [
+        Variable<String>(query),
+        Variable<String>(prefix),
+        Variable<int>(lim),
+      ],
       readsFrom: {foodsFts, foods},
     ).asyncMap(
       (QueryRow row) async => SearchFoodsResult(

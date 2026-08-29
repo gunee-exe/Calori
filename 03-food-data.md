@@ -49,14 +49,37 @@ and it only pays off with a barcode scanner, which is out of scope.
 
 ## 2. v1 composition
 
-USDA SR Legacy + Foundation + **FNDDS**, plus CoFID, CIQUAL, CNF and Frida for European and
-Canadian coverage, plus INDB and the Pakistan FCT for South Asian.
+### Shipped today: 11,889 foods, 34,781 portions, 3.3 MB
+
+| Source | Contributed | Notes |
+|---|---:|---|
+| USDA SR Legacy | 6,313 | generic ingredients and single foods |
+| USDA FNDDS | 5,279 | prepared and mixed dishes; richest portion data |
+| USDA Foundation | 297 | newest lab analysis; outranks SR Legacy on overlap |
+
+13,602 raw rows in, 1,713 exact-name duplicates collapsed. Zero quarantined, 199 warnings
+(kept and reported to `out/warnings.csv`).
+
+> **The download page overstates FNDDS by 60x.** It lists the survey CSV at 200 MB zipped /
+> 1.6 GB unzipped; the actual archive is **3.2 MB**. The whole build downloads under 13 MB.
+
+> **FNDDS uses a different nutrient numbering scheme.** SR Legacy and Foundation reference
+> FoodData Central ids (1008 for energy); FNDDS references the legacy SR `nutrient_nbr` values
+> (208) — in a column named `nutrient_id`. This does not error, it silently parses to *zero
+> records*. The adapter resolves roles from each archive's own `nutrient.csv` rather than
+> hardcoding either scheme.
+
+### Still to add
+
+CoFID, CIQUAL, CNF and Frida for European and Canadian coverage; INDB and the Pakistan FCT for
+South Asian.
 
 **FNDDS is the one that matters most.** Prepared and mixed dishes are what people actually
 photograph and log, and FNDDS carries the richest household-portion data of any source here.
 
-Raw union ≈ 29,000 rows. After dedup, **~18,000–20,000 unique foods**, landing at an estimated
-**4–6 MB** with FTS5 external content and `VACUUM`.
+Projected raw union ≈ 29,000 rows once all sources land, collapsing to **~18,000–20,000 unique
+foods** at an estimated **4–6 MB**. Each adapter is an independent file, so the merge ships with
+whatever is ready and gains the rest without any change to the app.
 
 **Honest remaining gaps:** East Asia, Southeast Asia, the Middle East, Latin America, most of
 Africa. FAO/INFOODS publishes regional tables (e.g. WAFCT 2019 for Western Africa, with Excel
@@ -135,9 +158,26 @@ file plus one manifest line — this is what makes any single dataset cheap to r
 
 ### Normalisation
 
-lowercase → strip punctuation → collapse whitespace → trivial singularisation → split USDA's
-trailing qualifiers (`, raw`, `, cooked, boiled, drained, without salt`) into a separate `prep`
-note rather than either keeping them in the search name or losing the information.
+fold accents → lowercase → drop punctuation → collapse whitespace. Trailing USDA preparation
+qualifiers (`, raw`, `, cooked, boiled, drained, without salt`) are split into a separate `prep`
+note rather than kept in the search name or discarded.
+
+**No singularisation.** It was implemented and removed: every rule short enough to be worth
+having turns "molasses" into "molasse" and "couscous" into "couscou", and the exception list
+required to avoid that would have to be mirrored exactly in Dart.
+
+**The Python and Dart normalisers must agree byte for byte.** Python writes
+`foods.name_normalised`; Dart (`lib/core/food_name.dart`) computes the value compared against it,
+both for the search prefix tier and for `food_cache` lookups. A divergence throws nothing — the
+cache simply never hits. Two traps found while pairing them:
+
+- Python's `\w` excludes Indic combining marks, so `बिरयानी` normalised to `ब रय न`. Both sides
+  now keep `\p{M}`.
+- `ø`, `đ`, `ł`, `ħ`, `ı`, `ŧ`, `ß`, `æ`, `œ`, `ð`, `þ` have no NFKD decomposition. Folding `ø` to
+  `o` in Dart alone would have stored *Smørrebrød* as `smorrebrod` and made it unfindable.
+
+`tools/build_foods_db/gen_golden_test.py` generates `test/core/food_name_test.dart` from the
+Python implementation. Rerun it whenever `normalise.py` changes.
 
 ### Dedup and precedence
 
@@ -187,9 +227,16 @@ rows against the source CSVs agrees.
 ## 5. App-side implementation
 
 - **Search:** 250 ms debounce → `buildFtsQuery` → `searchFoods` → results.
-- **Ranking:** `ORDER BY bm25(foods_fts), length(f.name)`. `bm25()` returns **negative** scores
-  where more negative is better, so **ascending is correct** — this reads wrong and is right.
-  Add a small precedence tiebreak so a regional row outranks a generic one at equal relevance.
+- **Ranking:** a prefix tier, then `bm25()`, then name length.
+
+  bm25 alone is a poor fit for short food names — it rewards term frequency relative to document
+  length, so "rice" returned *"Snacks, rice cakes, brown rice, buckwheat"* (which says "rice"
+  twice) above actual rice, and "pizza" returned "Pizza rolls". Preferring names that *begin* with
+  what was typed fixes both and matches what someone typing into a search box expects.
+
+  Within a tier, `bm25()` returns **negative** scores where more negative is better, so
+  **ascending is correct** — it reads wrong and is right. Name length breaks the final tie toward
+  the shorter, more generic entry.
 - **Result card:** the source badge (`INDB` / `USDA` / `CoFID`) is already in the prototype and
   is now backed by real provenance. Portion chips come from `food_portions` with `is_default`
   first; grams stay visible as the secondary readout, matching "serving units primary, grams
