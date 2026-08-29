@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<script src="./image-slot.js"></script>
+<style>
+  html, body { margin: 0; background: #EEF1F7; }
+  a { color: #2E5BFF; } a:hover { color: #1B3FCC; }
+  * { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 2px solid #2E5BFF; outline-offset: 2px; }
+  @keyframes sweep { 0% { background-position: -180% 0 } 100% { background-position: 280% 0 } }
+  @keyframes fabPulse { 0%,100% { box-shadow: 0 6px 20px rgba(46,91,255,0.32) } 50% { box-shadow: 0 6px 20px rgba(46,91,255,0.32), 0 0 0 12px rgba(46,91,255,0.10) } }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes sheetUp { from { transform: translateY(100%) } to { transform: none } }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+  @keyframes savePop { 0% { transform: none } 40% { transform: translateY(-4px) } 100% { transform: none } }
+  @keyframes ringIn { from { opacity: 0; transform: scale(.94) } to { opacity: 1; transform: none } }
+  *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; transition: none !important } }
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:flex-start;justify-content:center;gap:40px;padding:40px;box-sizing:border-box;font-family:Poppins,system-ui,sans-serif;color:#0B0D12">
+
+  <div style="width:200px;display:flex;flex-direction:column;gap:24px;padding-top:8px">
+    <div>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-0.01em">Bright blue</div>
+      <div style="font-size:13px;color:#5A6273;margin-top:4px">Clickable prototype</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ rail }}" as="r" hint-placeholder-count="6">
+        <button type="button" onClick="{{ r.go }}" style="appearance:none;border:0;background:{{ r.bg }};color:{{ r.fg }};text-align:left;font:inherit;font-size:14px;font-weight:500;padding:10px 12px;border-radius:10px;cursor:pointer;min-height:44px" style-hover="background:#EAF0FF">{{ r.label }}</button>
+      </sc-for>
+    </div>
+    <div style="font-size:12px;line-height:1.65;color:#5A6273;border-top:1px solid #E9EDF5;padding-top:16px">
+      Low-confidence values are out of focus. Tap one, confirm the portion, and it snaps sharp. No red anywhere — over target draws a dim second lap.
+    </div>
+  </div>
+
+  <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ 412 }}" height="{{ 892 }}" hint-size="412px,892px">
+    <div style="position:relative;height:100%;background:#EAEFF9;color:#0B0D12;font-family:Poppins,system-ui,sans-serif;overflow:hidden">
+
+      <!-- TODAY -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="height:100%;overflow:auto;padding:16px 20px 96px;box-sizing:border-box;animation:screenIn .3s cubic-bezier(.2,.9,.2,1) both">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button type="button" onClick="{{ goCalendar }}" aria-label="Open calendar" style="appearance:none;flex:none;width:44px;height:44px;border:0;border-radius:16px;background:#FFFFFF;color:#2E5BFF;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06);transition:background .18s ease" style-hover="background:#EAF0FF">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v3M16 3v3M3.5 10h17"></path></svg>
+            </button>
+            <div ref="{{ stripRef }}" style="flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:2px 0">
+              <sc-for list="{{ strip }}" as="d" hint-placeholder-count="7">
+                <button type="button" onClick="{{ d.tap }}" style="appearance:none;flex:none;width:52px;border:1px solid {{ d.border }};border-radius:16px;background:{{ d.bg }};color:{{ d.fg }};font:inherit;cursor:pointer;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;transition:background .2s ease,border-color .2s ease,color .2s ease">
+                  <span style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{ d.num }}</span>
+                  <span style="font-size:10px;font-weight:500;letter-spacing:0.04em;opacity:.75">{{ d.dow }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="font-size:13px;font-weight:500;color:#5A6273;margin-top:14px">{{ dateLabel }}</div>
+
+          <div style="display:flex;justify-content:center;padding:12px 0 4px">
+            <div style="position:relative;width:224px;height:224px;animation:ringIn .5s cubic-bezier(.2,.9,.2,1) both">
+              <svg viewBox="0 0 224 224" style="position:absolute;inset:0;transform:rotate(-90deg)">
+                <defs>
+                  <linearGradient id="arc3" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#2E5BFF"></stop>
+                    <stop offset="1" stop-color="#1B3FCC"></stop>
+                  </linearGradient>
+                </defs>
+                <circle cx="112" cy="112" r="94" fill="none" stroke="#D9E1F0" stroke-width="26"></circle>
+                <circle cx="112" cy="112" r="94" fill="none" stroke="url(#arc3)" stroke-width="26" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ arcDash }}" style="transition:stroke-dasharray .95s cubic-bezier(.22,.85,.24,1)"></circle>
+                <sc-if value="{{ isOver }}" hint-placeholder-val="{{ false }}">
+                  <circle cx="112" cy="112" r="68" fill="none" stroke="#C7CEDC" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ lapDash }}"></circle>
+                </sc-if>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+                <sc-if value="{{ cold }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:110px;height:44px;border-radius:12px;background:linear-gradient(100deg,#EEF1F7 20%,#F8FAFD 50%,#EEF1F7 80%);background-size:300% 100%;animation:sweep 1400ms linear infinite"></div>
+                </sc-if>
+                <sc-if value="{{ warm }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:48px;font-weight:600;line-height:1;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{ pctLabel }}</div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div style="font-size:16px;font-weight:500;font-variant-numeric:tabular-nums">{{ kcalLine }}</div>
+            <div style="font-size:13px;font-weight:500;color:#5A6273;margin-top:2px">{{ bigCaption }}</div>
+          </div>
+
+          <div style="margin-top:14px;background:#FFFFFF;border-radius:20px;padding:18px 20px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">Protein</div>
+              <div style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">{{ proteinLabel }}</div>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:14px">
+              <sc-for list="{{ proteinPips }}" as="p" hint-placeholder-count="12">
+                <div style="flex:1;height:9px;border-radius:3px;background:{{ p.bg }}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:26px;margin-top:18px;padding-top:16px;border-top:1px solid #E9EDF5;font-size:13px;color:#5A6273;font-variant-numeric:tabular-nums">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:4px;background:#FFA114"></span>Carbs {{ carbsLabel }}</div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:4px;background:#8B5CF6"></span>Fat {{ fatLabel }}</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273;margin:26px 0 12px">{{ logLabel }}</div>
+
+          <sc-if value="{{ logEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:15px;color:#5A6273">Nothing logged yet.</div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ log }}" as="m" hint-placeholder-count="2">
+              <button type="button" onClick="{{ m.open }}" style="appearance:none;text-align:left;font:inherit;border:0;border-radius:20px;padding:14px;cursor:pointer;background:{{ m.bg }};box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06);display:flex;align-items:center;gap:14px;min-height:76px;animation:rise .38s cubic-bezier(.2,.9,.2,1) both;animation-delay:{{ m.delay }};transition:transform .18s ease,box-shadow .18s ease" style-hover="transform:translateY(-2px);box-shadow:0 4px 12px rgba(11,13,18,0.06),0 16px 40px rgba(11,13,18,0.10)">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:#9AA2B4">{{ m.meal }}</div>
+                  <div style="font-size:15px;font-weight:500;margin-top:3px">{{ m.items }}</div>
+                </div>
+                <div style="flex:none;text-align:right">
+                  <div style="font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{ m.kcalOnly }}</div>
+                  <div style="font-size:11px;color:#9AA2B4">kcal</div>
+                </div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CAPTURE -->
+      <sc-if value="{{ isCapture }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;height:100%;background:#DFE5F0">
+          <image-slot id="v3-viewfinder" shape="rect" placeholder="Viewfinder — drop a food photo"></image-slot>
+          <button type="button" onClick="{{ goHome }}" aria-label="Close" style="position:absolute;top:12px;left:16px;appearance:none;width:44px;height:44px;border:0;border-radius:22px;background:rgba(255,255,255,0.9);color:#0B0D12;font:inherit;font-size:16px;cursor:pointer;box-shadow:0 8px 32px rgba(11,13,18,0.10)">✕</button>
+
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:0 20px 26px">
+            <sc-if value="{{ detailsClosed }}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ openDetails }}" style="appearance:none;width:100%;border:0;border-radius:999px;background:rgba(255,255,255,0.92);color:#0B0D12;font:inherit;font-size:14px;font-weight:500;padding:15px;min-height:48px;cursor:pointer;box-shadow:0 8px 32px rgba(11,13,18,0.10)" style-hover="background:#FFFFFF">Add details</button>
+            </sc-if>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+              <button type="button" onClick="{{ shoot }}" style="appearance:none;border:0;border-radius:999px;background:rgba(255,255,255,0.92);color:#0B0D12;font:inherit;font-size:13px;font-weight:500;padding:13px 17px;min-height:48px;cursor:pointer;box-shadow:0 8px 32px rgba(11,13,18,0.10)">Gallery</button>
+              <button type="button" onClick="{{ shoot }}" aria-label="Shutter" style="width:76px;height:76px;border-radius:38px;border:4px solid #FFFFFF;background:#2E5BFF;cursor:pointer;box-shadow:0 6px 20px rgba(46,91,255,0.32)" style-hover="background:#1B3FCC"></button>
+              <div style="width:84px"></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ detailsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(11,13,18,0.40);display:flex;align-items:flex-end">
+              <div style="width:100%;background:#FFFFFF;border-radius:28px 28px 0 0;padding:24px 20px 28px;animation:sheetUp .34s cubic-bezier(.2,.9,.2,1) both">
+                <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">Add details</div>
+                <input type="text" value="{{ details }}" onChange="{{ setDetails }}" placeholder="chicken biryani, one plate, about 300g" style="width:100%;box-sizing:border-box;background:none;border:0;border-bottom:1px solid #E9EDF5;color:#0B0D12;font:inherit;font-size:15px;padding:14px 0;outline:none;margin-top:8px"></input>
+                <button type="button" onClick="{{ closeDetails }}" style="appearance:none;width:100%;margin-top:22px;border:0;border-radius:999px;background:#2E5BFF;color:#FFFFFF;font:inherit;font-size:15px;font-weight:500;padding:15px;min-height:50px;cursor:pointer" style-hover="background:#1B3FCC">Done</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- PROPOSED -->
+      <sc-if value="{{ isProposed }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;overflow:auto;padding:8px 20px 28px;box-sizing:border-box;animation:screenIn .3s cubic-bezier(.2,.9,.2,1) both">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" onClick="{{ goHome }}" aria-label="Close" style="appearance:none;width:44px;height:44px;border:0;background:none;color:#0B0D12;font:inherit;font-size:16px;cursor:pointer;margin-left:-10px">✕</button>
+            <div style="font-size:18px;font-weight:600">Review</div>
+          </div>
+
+          <div style="margin-top:6px;height:220px;border-radius:20px;overflow:hidden;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+            <image-slot id="v3-proposed-photo" shape="rounded" radius="20" placeholder="Drop the meal photo"></image-slot>
+          </div>
+
+          <sc-if value="{{ analyzing }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:22px">
+              <sc-for list="{{ skeletons }}" as="s" hint-placeholder-count="3">
+                <div style="height:96px;border-radius:20px;background:linear-gradient(100deg,#EEF1F7 20%,#F8FAFD 50%,#EEF1F7 80%);background-size:300% 100%;animation:sweep 1400ms linear infinite"></div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ reviewReady }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:22px">
+              <sc-for list="{{ proposed }}" as="it" hint-placeholder-count="2">
+                <div style="background:#FFFFFF;border-radius:20px;padding:16px 18px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06);animation:rise .38s cubic-bezier(.2,.9,.2,1) both;animation-delay:{{ it.delay }}">
+                  <button type="button" onClick="{{ it.toggle }}" style="appearance:none;display:block;width:100%;text-align:left;border:0;background:none;font:inherit;padding:0;cursor:pointer;min-height:44px;filter:{{ it.blur }};opacity:{{ it.opacity }};transition:filter .26s ease,opacity .26s ease">
+                    <div style="font-size:16px;font-weight:500">{{ it.name }}</div>
+                    <div style="font-size:13px;color:#5A6273;margin-top:3px;font-variant-numeric:tabular-nums">{{ it.portion }}</div>
+                    <div style="font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums">{{ it.macros }}</div>
+                  </button>
+                  <sc-if value="{{ it.soft }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:13px;color:#9AA2B4;margin-top:10px">tap to confirm portion</div>
+                  </sc-if>
+                  <sc-if value="{{ it.editing }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E9EDF5">
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <sc-for list="{{ it.options }}" as="o" hint-placeholder-count="4">
+                          <button type="button" onClick="{{ o.set }}" style="appearance:none;border:1px solid {{ o.border }};border-radius:999px;background:{{ o.bg }};color:{{ o.fg }};font:inherit;font-size:13px;font-weight:500;padding:10px 15px;min-height:44px;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease">{{ o.label }}</button>
+                        </sc-for>
+                      </div>
+                      <button type="button" onClick="{{ it.confirm }}" style="appearance:none;width:100%;margin-top:14px;border:0;border-radius:999px;background:#EAF0FF;color:#2E5BFF;font:inherit;font-size:15px;font-weight:500;padding:13px;min-height:48px;cursor:pointer" style-hover="background:#DCE6FF">Confirm portion</button>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+
+            <button type="button" onClick="{{ addItem }}" style="appearance:none;border:0;background:none;color:#2E5BFF;font:inherit;font-size:15px;font-weight:500;padding:16px 0;min-height:48px;cursor:pointer;text-align:left">+ Add item</button>
+
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <div style="font-size:15px;font-weight:500;font-variant-numeric:tabular-nums">{{ proposedTotal }}</div>
+              <div style="font-size:13px;color:#9AA2B4">{{ confidenceNote }}</div>
+            </div>
+
+            <button type="button" onClick="{{ save }}" style="appearance:none;width:100%;border:0;border-radius:999px;background:#2E5BFF;color:#FFFFFF;font:inherit;font-size:16px;font-weight:500;padding:17px;min-height:54px;cursor:pointer;margin-top:16px;box-shadow:0 6px 20px rgba(46,91,255,0.32);animation:{{ saveAnim }}" style-hover="background:#1B3FCC">{{ saveLabel }}</button>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- SEARCH -->
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;overflow:auto;padding:16px 20px 96px;box-sizing:border-box;animation:screenIn .3s cubic-bezier(.2,.9,.2,1) both">
+          <div style="font-size:28px;font-weight:600;letter-spacing:-0.01em">Add food</div>
+          <input type="text" value="{{ query }}" onChange="{{ setQuery }}" placeholder="Search foods" style="width:100%;box-sizing:border-box;background:#FFFFFF;border:1px solid #E9EDF5;border-radius:999px;padding:15px 20px;font:inherit;font-size:15px;color:#0B0D12;outline:none;min-height:48px;margin-top:16px"></input>
+
+          <sc-if value="{{ noQuery }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273;margin:22px 0 12px">Recent</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <sc-for list="{{ chips }}" as="c" hint-placeholder-count="5">
+                  <button type="button" onClick="{{ c.pick }}" style="appearance:none;border:1px solid #E9EDF5;border-radius:999px;background:#FFFFFF;color:#0B0D12;font:inherit;font-size:13px;font-weight:500;padding:11px 15px;min-height:44px;cursor:pointer" style-hover="background:#EAF0FF">{{ c.n }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+            <sc-for list="{{ results }}" as="f" hint-placeholder-count="5">
+              <div style="background:#FFFFFF;border-radius:20px;padding:14px 18px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06);animation:rise .34s cubic-bezier(.2,.9,.2,1) both;animation-delay:{{ f.delay }}">
+                <button type="button" onClick="{{ f.pick }}" style="appearance:none;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:none;font:inherit;text-align:left;padding:0;cursor:pointer;min-height:44px">
+                  <div style="min-width:0;flex:1">
+                    <div style="font-size:15px;font-weight:500">{{ f.n }}</div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                      <span style="font-size:10px;font-weight:500;letter-spacing:0.1em;color:#5A6273;background:#EAEFF9;border-radius:999px;padding:3px 8px;white-space:nowrap">{{ f.s }}</span>
+                      <span style="font-size:13px;color:#5A6273;white-space:nowrap">{{ f.u }}</span>
+                    </div>
+                  </div>
+                  <div style="font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap">{{ f.kLabel }}</div>
+                </button>
+                <sc-if value="{{ f.expanded }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E9EDF5">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <sc-for list="{{ f.units }}" as="u" hint-placeholder-count="3">
+                        <button type="button" onClick="{{ u.set }}" style="appearance:none;border:1px solid {{ u.border }};border-radius:999px;background:{{ u.bg }};color:{{ u.fg }};font:inherit;font-size:13px;font-weight:500;padding:10px 15px;min-height:44px;cursor:pointer;transition:background .18s ease,border-color .18s ease,color .18s ease">{{ u.label }}</button>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:14px">
+                      <div style="font-size:13px;color:#5A6273;font-variant-numeric:tabular-nums">{{ f.grams }}</div>
+                      <div style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums">{{ f.kcal }}</div>
+                    </div>
+                    <button type="button" onClick="{{ f.add }}" style="appearance:none;width:100%;margin-top:14px;border:0;border-radius:999px;background:#2E5BFF;color:#FFFFFF;font:inherit;font-size:15px;font-weight:500;padding:14px;min-height:48px;cursor:pointer" style-hover="background:#1B3FCC">{{ f.addLabel }}</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CALENDAR -->
+      <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;overflow:auto;padding:16px 20px 96px;box-sizing:border-box;animation:screenIn .3s cubic-bezier(.2,.9,.2,1) both">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <button type="button" onClick="{{ prevMonth }}" aria-label="Previous month" style="appearance:none;border:0;background:none;color:#5A6273;font:inherit;font-size:18px;width:48px;height:48px;cursor:pointer">‹</button>
+            <div style="font-size:18px;font-weight:600">{{ monthLabel }}</div>
+            <button type="button" onClick="{{ nextMonth }}" aria-label="Next month" style="appearance:none;border:0;background:none;color:#5A6273;font:inherit;font-size:18px;width:48px;height:48px;cursor:pointer">›</button>
+          </div>
+
+          <div style="margin-top:14px;background:#FFFFFF;border-radius:22px;padding:16px 12px 14px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+              <sc-for list="{{ dow }}" as="d" hint-placeholder-count="7">
+                <div style="text-align:center;font-size:10px;font-weight:500;letter-spacing:0.06em;color:#9AA2B4;padding-bottom:8px">{{ d.l }}</div>
+              </sc-for>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+              <sc-for list="{{ cells }}" as="c" hint-placeholder-count="35">
+                <button type="button" onClick="{{ c.tap }}" style="position:relative;appearance:none;border:0;background:none;padding:0;aspect-ratio:1;cursor:{{ c.cursor }};border-radius:50%">
+                  <sc-if value="{{ c.selected }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;inset:1px;border-radius:50%;background:#EAF0FF;animation:fadeIn .2s ease both"></div>
+                  </sc-if>
+                  <sc-if value="{{ c.logged }}" hint-placeholder-val="{{ false }}">
+                    <svg viewBox="0 0 40 40" style="position:absolute;inset:0;transform:rotate(-90deg)">
+                      <circle cx="20" cy="20" r="16.5" fill="none" stroke="#EDF1F8" stroke-width="3"></circle>
+                      <circle cx="20" cy="20" r="16.5" fill="none" stroke="{{ c.arcColor }}" stroke-width="3" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ c.dash }}"></circle>
+                    </svg>
+                  </sc-if>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:{{ c.weight }};color:{{ c.fg }};font-variant-numeric:tabular-nums">{{ c.label }}</div>
+                  <sc-if value="{{ c.none }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:50%;bottom:2px;width:3px;height:3px;margin-left:-1.5px;border-radius:2px;background:#C7CEDC"></div>
+                  </sc-if>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;gap:16px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #E9EDF5;font-size:11px;color:#9AA2B4">
+              <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;border:2px solid #2E5BFF;box-sizing:border-box"></span>on target</div>
+              <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;border:2px solid #C7CEDC;box-sizing:border-box"></span>over</div>
+              <div style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:3px;border-radius:2px;background:#C7CEDC"></span>not logged</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <div style="flex:1;background:#FFFFFF;border-radius:20px;padding:16px 18px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+              <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">Average</div>
+              <div style="font-size:22px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums">{{ monthAvg }}</div>
+              <div style="font-size:12px;color:#9AA2B4">kcal per logged day</div>
+            </div>
+            <div style="flex:1;background:#FFFFFF;border-radius:20px;padding:16px 18px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+              <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">Logged</div>
+              <div style="font-size:22px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums">{{ monthDays }}</div>
+              <div style="font-size:12px;color:#9AA2B4">days this month</div>
+            </div>
+          </div>
+
+          <button type="button" onClick="{{ openSelDay }}" style="appearance:none;width:100%;text-align:left;font:inherit;margin-top:14px;background:#FFFFFF;border:0;border-radius:20px;padding:18px;cursor:pointer;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06);display:flex;align-items:center;gap:16px;transition:transform .18s ease" style-hover="transform:translateY(-2px)">
+            <div style="flex:none;position:relative;width:56px;height:56px">
+              <svg viewBox="0 0 40 40" style="position:absolute;inset:0;transform:rotate(-90deg)">
+                <circle cx="20" cy="20" r="16.5" fill="none" stroke="#EDF1F8" stroke-width="4"></circle>
+                <circle cx="20" cy="20" r="16.5" fill="none" stroke="{{ dayArcColor }}" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ dayDash }}"></circle>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">{{ dayPct }}</div>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">{{ dayTitle }}</div>
+              <div style="font-size:26px;font-weight:600;letter-spacing:-0.01em;margin-top:1px;font-variant-numeric:tabular-nums">{{ dayKcal }}</div>
+              <div style="font-size:13px;color:#5A6273">{{ dayNote }}</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9AA2B4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </sc-if>
+
+      <!-- GOAL -->
+      <sc-if value="{{ isGoal }}" hint-placeholder-val="{{ false }}">
+        <div style="height:100%;overflow:auto;padding:16px 20px 96px;box-sizing:border-box;animation:screenIn .3s cubic-bezier(.2,.9,.2,1) both">
+          <div style="font-size:28px;font-weight:600;letter-spacing:-0.01em">Goal</div>
+
+          <div style="margin-top:18px;background:#FFFFFF;border-radius:20px;padding:22px 20px;text-align:center;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+            <div style="font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#5A6273">Daily target</div>
+            <div style="font-size:56px;font-weight:600;letter-spacing:-0.02em;margin-top:6px;font-variant-numeric:tabular-nums;color:#2E5BFF">{{ targetLabel }}</div>
+            <div style="font-size:13px;color:#5A6273;margin-top:4px;line-height:1.6">{{ targetNote }}</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+            <sc-for list="{{ goalRows }}" as="g" hint-placeholder-count="3">
+              <div style="background:#FFFFFF;border-radius:20px;padding:16px 18px;box-shadow:0 2px 8px rgba(11,13,18,0.04),0 12px 32px rgba(11,13,18,0.06)">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+                  <div>
+                    <div style="font-size:15px;font-weight:500">{{ g.label }}</div>
+                    <div style="font-size:13px;color:#5A6273;margin-top:1px">{{ g.hint }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;flex:none">
+                    <button type="button" onClick="{{ g.dec }}" aria-label="Decrease" style="appearance:none;width:44px;height:44px;border:1px solid #E9EDF5;border-radius:22px;background:#FFFFFF;color:#0B0D12;font:inherit;font-size:18px;cursor:pointer" style-hover="background:#EAF0FF">−</button>
+                    <div style="min-width:74px;text-align:right;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">{{ g.value }}</div>
+                    <button type="button" onClick="{{ g.inc }}" aria-label="Increase" style="appearance:none;width:44px;height:44px;border:1px solid #E9EDF5;border-radius:22px;background:#FFFFFF;color:#0B0D12;font:inherit;font-size:18px;cursor:pointer" style-hover="background:#EAF0FF">+</button>
+                  </div>
+                </div>
+                <sc-if value="{{ g.refused }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E9EDF5;font-size:13px;line-height:1.65;color:#5A6273">{{ g.refusal }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- FLOATING NAV -->
+      <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ goSearch }}" aria-label="Add food manually" style="position:absolute;right:20px;bottom:100px;width:52px;height:52px;border-radius:26px;border:0;background:#2E5BFF;color:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(46,91,255,0.32);transition:transform .16s ease,background .18s ease" style-hover="background:#1B3FCC;transform:scale(1.06)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+          </sc-if>
+
+          <div style="position:absolute;left:16px;right:16px;bottom:20px;height:64px;border-radius:32px;background:#FFFFFF;box-shadow:0 8px 32px rgba(11,13,18,0.10);display:flex;align-items:center">
+            <div style="flex:1;display:flex;align-items:center;justify-content:space-evenly">
+              <button type="button" onClick="{{ t1.go }}" aria-label="Today" style="appearance:none;border:0;border-radius:22px;background:{{ t1.bg }};color:{{ t1.fg }};font:inherit;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;cursor:pointer;transition:background .32s cubic-bezier(.2,.9,.2,1),color .2s ease,padding .32s cubic-bezier(.2,.9,.2,1)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5.5 9.5V20h13V9.5"></path></svg>
+                <sc-if value="{{ t1.active }}" hint-placeholder-val="{{ true }}"><span style="animation:fadeIn .18s ease .14s both">Home</span></sc-if>
+              </button>
+            </div>
+            <div style="width:80px;flex:none;display:flex;justify-content:center">
+              <button type="button" onClick="{{ goCapture }}" aria-label="Take a photo of your food" style="appearance:none;width:52px;height:52px;border-radius:26px;border:0;background:#2E5BFF;color:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:-12px;box-shadow:0 6px 20px rgba(46,91,255,0.32)" style-hover="background:#1B3FCC">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.5h2.2l1.3-2h9l1.3 2H20a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1v-8a1 1 0 011-1z"></path><circle cx="12" cy="13.5" r="3.4"></circle></svg>
+              </button>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:space-evenly">
+              <button type="button" onClick="{{ t4.go }}" aria-label="Goal" style="appearance:none;border:0;border-radius:22px;background:{{ t4.bg }};color:{{ t4.fg }};font:inherit;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;cursor:pointer;transition:background .32s cubic-bezier(.2,.9,.2,1),color .2s ease,padding .32s cubic-bezier(.2,.9,.2,1)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"></circle><path d="M5 20.5c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5"></path></svg>
+                <sc-if value="{{ t4.active }}" hint-placeholder-val="{{ false }}"><span style="animation:fadeIn .18s ease .14s both">Goal</span></sc-if>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </sc-if>
+
+    </div>
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:700,&quot;height&quot;:980},&quot;overTarget&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;States&quot;},&quot;emptyToday&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;States&quot;},&quot;coldStart&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;States&quot;},&quot;softUncertainty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Signature&quot;}}">
+const DB = [
+  { n: 'Chicken biryani', s: 'INDB', u: '1 plate', g: 300, k: 620, p: 34, c: 68, f: 22, tint: '#F0DCC2' },
+  { n: 'Paratha', s: 'INDB', u: '1 piece', g: 80, k: 260, p: 6, c: 36, f: 10, tint: '#EFE0C8' },
+  { n: 'Masala chai', s: 'INDB', u: '1 cup', g: 150, k: 110, p: 3, c: 14, f: 4, tint: '#E6DACB' },
+  { n: 'Greek yogurt', s: 'USDA', u: '1 cup', g: 170, k: 146, p: 20, c: 8, f: 4, tint: '#EDEBE4' },
+  { n: 'Banana', s: 'USDA', u: '1 medium', g: 118, k: 105, p: 1, c: 27, f: 0, tint: '#F2E9C4' },
+  { n: 'Roti', s: 'INDB', u: '1 medium', g: 45, k: 120, p: 3, c: 24, f: 2, tint: '#EEE2CE' },
+  { n: 'Oat porridge', s: 'USDA', u: '1 bowl', g: 250, k: 220, p: 8, c: 38, f: 4, tint: '#EAE4D6' },
+  { n: 'Paneer tikka', s: 'INDB', u: '5 pieces', g: 150, k: 340, p: 20, c: 9, f: 24, tint: '#F0D5C6' },
+  { n: 'Grilled salmon', s: 'USDA', u: '1 fillet', g: 150, k: 280, p: 34, c: 0, f: 16, tint: '#F1D6CE' },
+  { n: 'Chicken caesar salad', s: 'USDA', u: '1 bowl', g: 220, k: 390, p: 28, c: 12, f: 26, tint: '#DDE8D3' },
+  { n: 'Scrambled eggs', s: 'USDA', u: '2 eggs', g: 110, k: 200, p: 13, c: 2, f: 15, tint: '#F4E8C8' },
+  { n: 'Sourdough toast', s: 'USDA', u: '1 slice', g: 50, k: 130, p: 5, c: 24, f: 1, tint: '#EEE3D2' },
+  { n: 'Raita', s: 'INDB', u: '2 tbsp', g: 30, k: 45, p: 2, c: 3, f: 3, tint: '#E7ECE6' },
+  { n: 'Espresso', s: 'USDA', u: '1 shot', g: 30, k: 3, p: 0, c: 0, f: 0, tint: '#E3D8D0' }
+];
+
+const BASE_LOG = [
+  { meal: 'Lunch', items: 'Chicken biryani', kcal: 620, p: 34, c: 68, f: 22, tint: '#F0DCC2', wash: 'rgba(214,150,68,0.10)' },
+  { meal: 'Breakfast', items: 'Paratha, chai', kcal: 420, p: 10, c: 46, f: 18, tint: '#EFE0C8', wash: 'rgba(198,158,92,0.10)' }
+];
+
+const OVER_ROW = { meal: 'Dinner', items: 'Pasta, garlic bread', kcal: 1400, p: 42, c: 168, f: 46, tint: '#F1E2CD', wash: 'rgba(206,164,104,0.10)' };
+
+const BASE_PROPOSED = [
+  { name: 'Chicken biryani', unit: 'plate', g: 300, qty: 1, k: 620, p: 28, c: 72, f: 24, low: false },
+  { name: 'Raita', unit: 'tbsp', g: 30, qty: 2, k: 45, p: 2, c: 2, f: 3, low: true }
+];
+
+const DAY_TINTS = ['#F0DCC2', '#DDE8D3', '#EFE0C8', '#F1D6CE', '#EAE4D6', '#F2E9C4', '#E3D8D0'];
+const num = n => Math.round(n).toLocaleString('en-US');
+
+class Component extends DCLogic {
+  state = {
+    screen: 'home', log: null, detailsOpen: false, details: '',
+    analyzing: false, proposed: BASE_PROPOSED.map(o => Object.assign({}, o)),
+    editing: null, saved: false, searchReturn: 'home', query: '', expanded: null, pickQty: 1,
+    selDay: 26, monthOffset: 0, weight: 78, goalWeight: 70, rate: 0.5, shownTarget: null
+  };
+
+  componentDidMount() { this.setState({ shownTarget: this.target }); this.fillRing(); }
+
+  stripRef = (el) => { this._strip = el; if (el) requestAnimationFrame(this.centerStrip); };
+
+  centerStrip = () => {
+    const row = this._strip;
+    if (!row) return;
+    const chip = row.children[this._activeIdx || 0];
+    if (!chip) return;
+    row.scrollLeft = chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2;
+  };
+
+  componentDidUpdate() { this.centerStrip(); }
+
+  fillRing = () => {
+    this.setState({ ringOn: false });
+    cancelAnimationFrame(this._ring);
+    this._ring = requestAnimationFrame(() => requestAnimationFrame(() => this.setState({ ringOn: true })));
+  };
+
+  dayLog(d) {
+    if (d === 26) return this.logRows;
+    const dd = this.dayData(d);
+    if (dd.state === 'none') return [];
+    const pool = [
+      { meal: 'Breakfast', items: 'Oat porridge, banana', tint: '#F2E9C4', wash: 'rgba(206,178,86,0.10)', share: 0.24, p: 9, c: 46, f: 5 },
+      { meal: 'Lunch', items: 'Chicken caesar salad', tint: '#DDE8D3', wash: 'rgba(110,140,82,0.10)', share: 0.42, p: 30, c: 22, f: 24 },
+      { meal: 'Dinner', items: 'Paneer tikka, roti', tint: '#F0D5C6', wash: 'rgba(198,104,66,0.10)', share: 0.34, p: 24, c: 40, f: 20 }
+    ];
+    return pool.map(m => Object.assign({}, m, { kcal: Math.round(dd.kcal * m.share) }));
+  }
+  componentWillUnmount() { clearTimeout(this._t); cancelAnimationFrame(this._raf); cancelAnimationFrame(this._ring); }
+
+  get target() {
+    return Math.round((this.state.weight * 32 - this.state.rate * this.state.weight * 11) / 10) * 10;
+  }
+
+  get logRows() {
+    if (this.props.emptyToday) return [];
+    const rows = (this.state.log || BASE_LOG).slice();
+    if (this.props.overTarget) rows.unshift(OVER_ROW);
+    return rows;
+  }
+
+  tween(to) {
+    const from = this.state.shownTarget == null ? to : this.state.shownTarget;
+    const t0 = performance.now();
+    cancelAnimationFrame(this._raf);
+    const step = () => {
+      const p = Math.min(1, (performance.now() - t0) / 420);
+      this.setState({ shownTarget: from + (to - from) * (1 - Math.pow(2, -10 * p)) });
+      if (p < 1) this._raf = requestAnimationFrame(step);
+    };
+    this._raf = requestAnimationFrame(step);
+  }
+
+  bump(key, d) {
+    const v = Math.max(0.1, Math.round((this.state[key] + d) * 10) / 10);
+    this.setState({ [key]: v }, () => this.tween(this.target));
+  }
+
+  dayData(d) {
+    const t = this.target;
+    if (d === 26) {
+      const rows = this.logRows;
+      const k = rows.reduce((a, r) => a + r.kcal, 0);
+      if (!k) return { state: 'none', kcal: 0, tint: '#EAF0FF' };
+      return { state: k > t ? 'over' : 'on', kcal: k, tint: rows[0].tint };
+    }
+    if (d === 10 || d === 21 || d < 4) return { state: 'none', kcal: 0, tint: '#EAF0FF' };
+    const k = 1620 + ((d * 37) % 9) * 105;
+    return { state: k > t ? 'over' : 'on', kcal: k, tint: DAY_TINTS[d % DAY_TINTS.length] };
+  }
+
+  base(name) { return BASE_PROPOSED.find(p => p.name === name) || this.state.proposed.find(p => p.name === name); }
+
+  tab(id, label) {
+    const active = this.state.screen === id;
+    return {
+      label, active, go: this.go(id),
+      bg: active ? '#EAF0FF' : 'transparent',
+      fg: active ? '#2E5BFF' : '#9AA2B4'
+    };
+  }
+
+  renderVals() {
+    const S = this.state, P = this.props;
+    const screen = S.screen;
+    const target = this.target;
+    const rows = this.dayLog(S.selDay);
+    const cold = !!P.coldStart;
+    const consumed = rows.reduce((a, r) => a + r.kcal, 0);
+    const prot = rows.reduce((a, r) => a + r.p, 0);
+    const left = target - consumed;
+    const isOver = left < 0;
+
+    const rail = [['home', 'Today'], ['capture', 'Capture'], ['proposed', 'Proposed card'], ['search', 'Add food'], ['calendar', 'Full calendar'], ['goal', 'Goal']]
+      .map(([id, label]) => ({
+        label, go: id === 'proposed' ? this.openProposed : this.go(id),
+        bg: screen === id ? '#EAF0FF' : 'transparent',
+        fg: screen === id ? '#2E5BFF' : '#5A6273'
+      }));
+
+    const proposed = S.proposed.map((it, i) => {
+      const b = this.base(it.name) || it;
+      const r = it.qty / b.qty;
+      const soft = P.softUncertainty === false ? false : (it.low && !it.confirmed);
+      return {
+        name: it.name,
+        portion: it.qty + ' ' + it.unit + ' · ' + Math.round(b.g * r) + ' g',
+        macros: num(b.k * r) + '   ' + Math.round(b.p * r) + 'P   ' + Math.round(b.c * r) + 'C   ' + Math.round(b.f * r) + 'F',
+        soft, blur: soft ? 'blur(3px)' : 'blur(0px)', opacity: soft ? 0.55 : 1,
+        delay: (i * 60) + 'ms',
+        editing: S.editing === i,
+        toggle: () => this.setState({ editing: S.editing === i ? null : i }),
+        confirm: () => this.setState({ editing: null, proposed: S.proposed.map((x, j) => j === i ? Object.assign({}, x, { confirmed: true }) : x) }),
+        options: [0.5, 1, 2, 3].map(q => ({
+          label: q + ' ' + it.unit,
+          set: () => this.setState({ proposed: S.proposed.map((x, j) => j === i ? Object.assign({}, x, { qty: q }) : x) }),
+          bg: it.qty === q ? '#EAF0FF' : '#FFFFFF',
+          border: it.qty === q ? '#2E5BFF' : '#E9EDF5',
+          fg: it.qty === q ? '#2E5BFF' : '#0B0D12'
+        }))
+      };
+    });
+    const proposedKcal = S.proposed.reduce((a, it) => {
+      const b = this.base(it.name) || it;
+      return a + b.k * (it.qty / b.qty);
+    }, 0);
+    const softCount = S.proposed.filter(it => it.low && !it.confirmed).length;
+
+    const q = S.query.trim().toLowerCase();
+    const list = q ? DB.filter(f => f.n.toLowerCase().includes(q)) : DB.slice(0, 5);
+    const results = list.map((f, ri) => {
+      const expanded = S.expanded === f.n;
+      return Object.assign({}, f, {
+        kLabel: num(f.k) + ' kcal', expanded, delay: (ri * 40) + 'ms',
+        pick: () => this.setState({ expanded: expanded ? null : f.n, pickQty: 1 }),
+        units: [0.5, 1, 2].map(m => ({
+          label: m + ' × ' + f.u,
+          set: () => this.setState({ pickQty: m }),
+          bg: S.pickQty === m ? '#EAF0FF' : '#FFFFFF',
+          border: S.pickQty === m ? '#2E5BFF' : '#E9EDF5',
+          fg: S.pickQty === m ? '#2E5BFF' : '#0B0D12'
+        })),
+        grams: Math.round(f.g * S.pickQty) + ' g',
+        kcal: num(f.k * S.pickQty) + ' kcal',
+        addLabel: S.searchReturn === 'proposed' ? 'Add item' : 'Save',
+        add: () => this.addFood(f)
+      });
+    });
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const mi = 7 + S.monthOffset;
+    const showAug = S.monthOffset === 0;
+    const dim = new Date(2026, mi + 1, 0).getDate();
+    const offset = (new Date(2026, mi, 1).getDay() + 6) % 7;
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push({ label: '', fg: 'transparent', cursor: 'default', tap: () => {} });
+    let loggedDays = 0, loggedSum = 0;
+    for (let d = 1; d <= dim; d++) {
+      const future = showAug ? d > 26 : S.monthOffset > 0;
+      const dd = future ? { state: 'future', kcal: 0, tint: 'transparent' } : this.dayData(d);
+      if (dd.state === 'on' || dd.state === 'over') { loggedDays++; loggedSum += dd.kcal; }
+      cells.push({
+        label: String(d),
+        fg: dd.state === 'future' ? '#C7CEDC' : (showAug && S.selDay === d ? '#2E5BFF' : '#0B0D12'),
+        weight: showAug && S.selDay === d ? 600 : 500,
+        logged: dd.state === 'on' || dd.state === 'over',
+        none: dd.state === 'none',
+        selected: showAug && S.selDay === d,
+        tint: dd.tint,
+        arcColor: dd.state === 'over' ? '#C7CEDC' : '#2E5BFF',
+        dash: (dd.kcal ? Math.min(100, (dd.kcal / target) * 100) : 0).toFixed(1) + ' 100',
+        cursor: dd.state === 'future' ? 'default' : 'pointer',
+        tap: () => { if (dd.state !== 'future') this.pickDay(d)(); }
+      });
+    }
+    const sel = this.dayData(S.selDay);
+
+    const safeWks = (S.weight - S.goalWeight) / (0.01 * S.weight);
+    const dt = new Date(2026, 7, 26 + Math.round(safeWks * 7));
+    const safeDate = dt.getDate() + ' ' + monthNames[dt.getMonth()];
+    const refused = S.rate > 1;
+
+    return {
+      rail,
+      t1: this.tab('home', 'Home'), t4: this.tab('goal', 'Goal'),
+      showNav: screen === 'home' || screen === 'search' || screen === 'calendar' || screen === 'goal',
+      isHome: screen === 'home', isCapture: screen === 'capture', isProposed: screen === 'proposed',
+      isSearch: screen === 'search', isCalendar: screen === 'calendar', isGoal: screen === 'goal',
+      goHome: this.go('home'), goCapture: this.go('capture'),
+
+      goCalendar: this.go('calendar'), goSearch: this.go('search'),
+      stripRef: this.stripRef,
+      strip: Array.from({ length: 12 }, (_, i) => 26 - 11 + i).map((d, i) => {
+        const active = S.selDay === d;
+        if (active) this._activeIdx = i;
+        return {
+          num: String(d),
+          dow: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(new Date(2026, 7, d).getDay() + 6) % 7],
+          bg: active ? '#2E5BFF' : '#FFFFFF',
+          fg: active ? '#FFFFFF' : '#5A6273',
+          border: active ? '#2E5BFF' : '#E9EDF5',
+          tap: this.pickDay(d)
+        };
+      }),
+      dateLabel: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(2026, 7, S.selDay).getDay()] + ', ' + S.selDay + ' August',
+      cold, warm: !cold,
+      pctLabel: Math.round((consumed / target) * 100) + '%',
+      kcalLine: num(consumed) + ' / ' + num(target) + ' kcal',
+      bigNumber: isOver ? num(-left) : num(left),
+      bigCaption: rows.length === 0
+        ? (S.selDay === 26 ? 'nothing logged yet' : 'nothing logged')
+        : (isOver ? (S.selDay === 26 ? 'over today' : 'over target') : (S.selDay === 26 ? 'left today' : 'under target')),
+      logLabel: S.selDay === 26 ? 'Today' : S.selDay + ' August',
+      arcDash: (S.ringOn ? Math.min(100, (consumed / target) * 100) : 0).toFixed(1) + ' 100',
+      lapDash: isOver ? Math.min(100, ((consumed - target) / target) * 100).toFixed(1) + ' 100' : '0 100',
+      isOver,
+      proteinLabel: prot + ' / 140 g',
+      proteinPips: Array.from({ length: 12 }, (_, i) => ({ bg: (i + 1) / 12 <= prot / 140 ? '#2E5BFF' : '#E9EDF5' })),
+      carbsLabel: rows.reduce((a, r) => a + r.c, 0) + ' g',
+      fatLabel: rows.reduce((a, r) => a + r.f, 0) + ' g',
+      logEmpty: rows.length === 0,
+      log: rows.map((r, i) => Object.assign({}, r, {
+        delay: (i * 40) + 'ms',
+        kcalOnly: num(r.kcal),
+        bg: '#FFFFFF',
+        open: this.openProposed
+      })),
+
+      detailsOpen: S.detailsOpen, detailsClosed: !S.detailsOpen, details: S.details,
+      setDetails: e => this.setState({ details: e.target.value }),
+      openDetails: () => this.setState({ detailsOpen: true }),
+      closeDetails: () => this.setState({ detailsOpen: false }),
+      shoot: this.openProposed,
+
+      analyzing: S.analyzing, reviewReady: !S.analyzing, skeletons: [{}, {}, {}],
+      proposed, proposedTotal: num(proposedKcal) + ' kcal total',
+      confidenceNote: softCount ? softCount + ' to confirm' : 'all confirmed',
+      addItem: () => this.setState({ screen: 'search', searchReturn: 'proposed', query: '', expanded: null }),
+      save: this.save, saveLabel: S.saved ? 'Saved' : 'Save',
+      saveAnim: S.saved ? 'savePop .42s cubic-bezier(.2,.9,.2,1) both' : 'none',
+
+      query: S.query, setQuery: e => this.setState({ query: e.target.value }),
+      noQuery: !q, results,
+      chips: DB.slice(0, 5).map(f => ({ n: f.n, pick: () => this.setState({ expanded: f.n, pickQty: 1 }) })),
+
+      monthLabel: monthNames[((mi % 12) + 12) % 12] + ' 2026',
+      dow: ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(l => ({ l })),
+      cells,
+      monthAvg: loggedDays ? num(loggedSum / loggedDays) : '—',
+      monthDays: String(loggedDays),
+      openSelDay: this.pickDay(S.selDay),
+      dayPct: sel.state === 'none' ? '—' : Math.round((sel.kcal / target) * 100) + '%',
+      dayDash: (sel.kcal ? Math.min(100, (sel.kcal / target) * 100) : 0).toFixed(1) + ' 100',
+      dayArcColor: sel.state === 'over' ? '#C7CEDC' : '#2E5BFF',
+      prevMonth: () => this.setState({ monthOffset: S.monthOffset - 1 }),
+      nextMonth: () => this.setState({ monthOffset: S.monthOffset + 1 }),
+      dayTitle: S.selDay + ' August',
+      dayTint: sel.tint,
+      dayKcal: sel.state === 'none' ? '—' : num(sel.kcal),
+      dayNote: sel.state === 'none' ? 'Nothing logged.' : sel.state === 'over' ? num(sel.kcal - target) + ' over target' : num(target - sel.kcal) + ' under target',
+
+      targetLabel: num(S.shownTarget == null ? target : S.shownTarget),
+      targetNote: refused
+        ? 'Held at the safe rate until the rate of loss comes back under 1 %.'
+        : 'At ' + S.rate.toFixed(1) + ' % per week you reach ' + S.goalWeight + ' kg by ' + safeDate + '.',
+      goalRows: [
+        { label: 'Current weight', hint: 'kilograms', value: S.weight.toFixed(0) + ' kg', dec: () => this.bump('weight', -1), inc: () => this.bump('weight', 1), refused: false, refusal: '' },
+        { label: 'Goal weight', hint: 'kilograms', value: S.goalWeight.toFixed(0) + ' kg', dec: () => this.bump('goalWeight', -1), inc: () => this.bump('goalWeight', 1), refused: false, refusal: '' },
+        {
+          label: 'Rate of loss', hint: '% of bodyweight per week', value: S.rate.toFixed(1) + ' %',
+          dec: () => this.bump('rate', -0.1), inc: () => this.bump('rate', 0.1), refused,
+          refusal: "That's faster than 1% of your bodyweight per week. At a safe rate you'd reach " + S.goalWeight + ' kg by ' + safeDate + '.'
+        }
+      ]
+    };
+  }
+
+  go = (screen) => () => {
+    this.setState({ screen, saved: false, expanded: null });
+    if (screen === 'home') this.fillRing();
+  };
+
+  pickDay = (d) => () => { this.setState({ selDay: d, screen: 'home' }); this.fillRing(); };
+
+  openProposed = () => {
+    this.setState({ screen: 'proposed', analyzing: true, saved: false, editing: null, detailsOpen: false });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ analyzing: false }), 1600);
+  };
+
+  save = () => {
+    const items = this.state.proposed.map(it => it.name).join(', ');
+    const tot = this.state.proposed.reduce((a, it) => {
+      const b = this.base(it.name) || it;
+      const r = it.qty / b.qty;
+      return { k: a.k + b.k * r, p: a.p + b.p * r, c: a.c + b.c * r, f: a.f + b.f * r };
+    }, { k: 0, p: 0, c: 0, f: 0 });
+    const log = [{
+      meal: 'Dinner', items, kcal: Math.round(tot.k),
+      p: Math.round(tot.p), c: Math.round(tot.c), f: Math.round(tot.f),
+      tint: '#F0DCC2', wash: 'rgba(214,150,68,0.10)'
+    }].concat(this.state.log || BASE_LOG);
+    this.setState({ log, saved: true });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ screen: 'home', saved: false }), 700);
+  };
+
+  addFood(f) {
+    const q = this.state.pickQty;
+    if (this.state.searchReturn === 'proposed') {
+      const unit = f.u.replace(/^[\d.]+\s*/, '');
+      BASE_PROPOSED.push({ name: f.n, unit, g: f.g * q, qty: q, k: f.k * q, p: f.p * q, c: f.c * q, f: f.f * q, low: false });
+      this.setState({
+        proposed: this.state.proposed.concat([{ name: f.n, unit, g: f.g * q, qty: q, k: f.k * q, p: f.p * q, c: f.c * q, f: f.f * q, low: false, confirmed: true }]),
+        expanded: null, screen: 'proposed'
+      });
+    } else {
+      const log = [{
+        meal: 'Snack', items: f.n, kcal: Math.round(f.k * q),
+        p: Math.round(f.p * q), c: Math.round(f.c * q), f: Math.round(f.f * q),
+        tint: f.tint, wash: 'rgba(120,130,150,0.06)'
+      }].concat(this.state.log || BASE_LOG);
+      this.setState({ log, expanded: null, screen: 'home' });
+    }
+  }
+}
+
+</script>
+</body>
+</html>
