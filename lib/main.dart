@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() => runApp(const CaloriApp());
+import 'app.dart';
 
-/// Placeholder shell. Phase 1 replaces this with the themed app in `app.dart`,
-/// driven by the tokens extracted from the Bright Blue prototype.
-class CaloriApp extends StatelessWidget {
-  const CaloriApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Calori',
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(backgroundColor: Color(0xFFEAEFF9)),
-    );
-  }
+void main() {
+  runApp(const ProviderScope(child: CaloriApp()));
 }

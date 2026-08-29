@@ -15,6 +15,9 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+// The generated part file references these enum types directly, and a part
+// resolves names against its own library rather than through tables.dart.
+import '../../domain/models/enums.dart';
 import 'tables.dart';
 
 part 'diary_db.g.dart';

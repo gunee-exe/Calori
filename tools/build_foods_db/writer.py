@@ -70,6 +70,12 @@ def write(
         connection.executescript("PRAGMA page_size=4096;")
         connection.executescript(SCHEMA)
 
+        # Drift compares user_version against its schemaVersion on open. Left
+        # at 0 the database looks brand new, and drift runs onCreate — which
+        # for FoodsDb deliberately throws, because a finished database has
+        # nothing to create. Must match FoodsDb.schemaVersion.
+        connection.executescript("PRAGMA user_version = 1;")
+
         food_rows = []
         portion_rows = []
 
