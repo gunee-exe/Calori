@@ -101,7 +101,8 @@ CREATE VIRTUAL TABLE foods_fts USING fts5(
   tokenize="unicode61 remove_diacritics 2"
 );
 
-CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT) STRICT;
+-- `key` is reserved in drift's SQL parser, hence `name`.
+CREATE TABLE meta (name TEXT PRIMARY KEY, value TEXT) STRICT;
 -- build_version, built_at, and a per-source manifest of licence + attribution string
 ```
 

@@ -1,0 +1,97 @@
+-- Schema for the bundled, read-only food database (`assets/db/foods.sqlite`),
+-- built on desktop by tools/build_foods_db. See 03-food-data.md.
+--
+-- This file must stay in lockstep with the Python writer: drift generates Dart
+-- against these declarations, but the database that actually ships is the one
+-- Python produced. A mismatch here is not caught at compile time — it surfaces
+-- as a runtime column error on a user's phone.
+--
+-- FTS5 requires `modules: [fts5]` under drift_dev in build.yaml. Without it,
+-- codegen rejects the CREATE VIRTUAL TABLE below at analysis time.
+--
+-- Note: the shipped tables are declared STRICT by the Python writer. STRICT is
+-- omitted here only because it changes nothing about the generated Dart.
+
+CREATE TABLE foods (
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    name_normalised TEXT NOT NULL,
+    -- 'usda_sr' | 'usda_foundation' | 'usda_fndds' | 'cofid' | 'ciqual'
+    -- | 'cnf' | 'frida' | 'indb' | 'pakistan_fct'
+    source TEXT NOT NULL,
+    -- The key in the originating dataset, so any row can be traced back.
+    source_id TEXT,
+    -- 'IN' | 'PK' | 'GB' | 'FR' | 'CA' | 'DK' | 'US'. A ranking bias only —
+    -- never a filter. Nobody's search results get narrowed by their locale.
+    locale_hint TEXT,
+    kcal_100g REAL NOT NULL,
+    protein_100g REAL NOT NULL,
+    carbs_100g REAL NOT NULL,
+    fat_100g REAL NOT NULL
+);
+
+-- Household portions. A food may have several ("1 cup", "1 medium", "1 plate").
+-- This is why the concept doc's single serving_desc/serving_grams pair was
+-- promoted to its own table: FNDDS, CNF and CoFID all supply multiple, and the
+-- portion chips in the UI need them.
+CREATE TABLE food_portions (
+    id INTEGER NOT NULL PRIMARY KEY,
+    food_id INTEGER NOT NULL REFERENCES foods (id),
+    label TEXT NOT NULL,
+    grams REAL NOT NULL,
+    is_default INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_food_portions_food ON food_portions (food_id);
+
+-- External-content FTS index: `content=foods` stops FTS5 storing a second copy
+-- of every name, which roughly halves the index. No sync triggers are needed
+-- because this database is built offline and never written on device.
+--
+-- remove_diacritics 2 is what makes "creme" find "crème" once CIQUAL and Frida
+-- are in the merge.
+CREATE VIRTUAL TABLE foods_fts USING fts5 (
+    name,
+    content = foods,
+    content_rowid = id,
+    tokenize = "unicode61 remove_diacritics 2"
+);
+
+-- Build provenance: version, build timestamp, and one row per contributing
+-- source carrying its licence and required attribution string. The in-app
+-- Sources screen renders this, so it can never drift from what actually shipped.
+-- `key` is a reserved word in the SQL parser drift uses, so the columns are
+-- named `name`/`value` rather than quoted at every call site.
+CREATE TABLE meta (
+    name TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Ranked full-text search.
+--
+-- bm25() returns NEGATIVE scores where more negative is a better match, so
+-- ascending order is correct here. It reads wrong and is right; do not "fix" it.
+-- length(name) breaks ties toward the shorter, more generic entry, so "rice"
+-- outranks "rice, white, long-grain, parboiled, enriched, dry".
+--
+-- :query must be built by buildFtsQuery() in Dart, never passed raw — FTS5 has
+-- its own operator grammar and unescaped user input is both a syntax error and
+-- a denial-of-service vector.
+searchFoods(:query AS TEXT, :lim AS INT):
+    SELECT f.**, bm25(foods_fts) AS score
+    FROM foods_fts
+    JOIN foods f ON f.id = foods_fts.rowid
+    WHERE foods_fts MATCH :query
+    ORDER BY score, length(f.name)
+    LIMIT :lim;
+
+foodById(:id AS INT):
+    SELECT * FROM foods WHERE id = :id;
+
+portionsForFood(:foodId AS INT):
+    SELECT * FROM food_portions
+    WHERE food_id = :foodId
+    ORDER BY is_default DESC, grams ASC;
+
+allMeta:
+    SELECT * FROM meta ORDER BY name;
