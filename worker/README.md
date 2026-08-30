@@ -128,9 +128,14 @@ terminal command rather than a screen.
 **Put them in a file** rather than on the command line, so the secret stays out
 of your shell history:
 
-1. Copy `worker-config.example.json` (in the project root) to
-   `worker-config.json`.
-2. Fill in both values.
+1. **Copy** `worker-config.example.json` (in the project root) to a new file
+   called `worker-config.json`.
+2. Fill in both values **in the copy**.
+
+> Fill in the copy, not the template. `worker-config.example.json` is tracked
+> by git and `worker-config.json` is ignored, so a secret typed into the
+> template can be committed by accident — and the build will not find it
+> anyway, because `--dart-define-from-file` is pointed at `worker-config.json`.
 
 ```json
 {
