@@ -13,6 +13,17 @@
 const ANALYZE_PATH = '/analyze';
 const UPSTREAM = 'https://openrouter.ai/api/v1/chat/completions';
 
+/**
+ * Used when the MODEL variable is not set.
+ *
+ * The slug belongs in a Worker variable so it can be changed without shipping
+ * an app update — but a Worker deployed through the dashboard without that
+ * variable would otherwise send `model: undefined` upstream and fail with an
+ * opaque 400. A default makes the happy path work and leaves the override.
+ */
+const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+const DEFAULT_FALLBACK_MODEL = 'google/gemini-2.5-flash-lite';
+
 /** 8 MB of base64 is roughly a 6 MB image — far above the ~120 KB the app sends. */
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
@@ -118,7 +129,17 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/health') {
-      return cors(json({ ok: true, model: env.MODEL }));
+      // Reports what is actually configured, so a misconfigured deployment is
+      // one curl away from being obvious.
+      return cors(
+        json({
+          ok: true,
+          model: env.MODEL || DEFAULT_MODEL,
+          kv: Boolean(env.KV),
+          auth_required: Boolean(env.APP_SHARED_SECRET),
+          key_present: Boolean(env.OPENROUTER_API_KEY),
+        }),
+      );
     }
 
     if (url.pathname !== ANALYZE_PATH) {
@@ -165,6 +186,17 @@ async function analyze(request, env, ctx) {
     return json({ error: 'bad_request', message: 'image_base64 is required.' }, 400);
   }
 
+  if (!env.OPENROUTER_API_KEY) {
+    // Named explicitly: the commonest dashboard mistake is deploying the code
+    // and forgetting the secret, which would otherwise surface as a generic
+    // upstream failure and send you looking in the wrong place.
+    console.error('missing_api_key');
+    return json(
+      { error: 'not_configured', message: 'OPENROUTER_API_KEY is not set.' },
+      500,
+    );
+  }
+
   const deviceId = request.headers.get('x-device-id') || 'anonymous';
   const limited = await checkRateLimit(env, deviceId);
   if (limited) return limited;
@@ -186,14 +218,14 @@ async function analyze(request, env, ctx) {
 
   const hint = typeof body.user_hint === 'string' ? body.user_hint.slice(0, 200) : null;
 
-  let result = await callModel(env, env.MODEL, imageBase64, hint);
+  const model = env.MODEL || DEFAULT_MODEL;
+  const fallback = env.FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
 
-  if (!result.ok && env.FALLBACK_MODEL) {
-    console.warn('primary_model_failed', {
-      model: env.MODEL,
-      reason: result.reason,
-    });
-    result = await callModel(env, env.FALLBACK_MODEL, imageBase64, hint);
+  let result = await callModel(env, model, imageBase64, hint);
+
+  if (!result.ok && fallback && fallback !== model) {
+    console.warn('primary_model_failed', { model, reason: result.reason });
+    result = await callModel(env, fallback, imageBase64, hint);
   }
 
   if (!result.ok) {
