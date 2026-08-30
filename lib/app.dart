@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/tokens.dart';
-import 'features/home/home_screen.dart';
 import 'features/home/providers.dart';
+import 'features/shell/app_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
 
 class CaloriApp extends StatelessWidget {
@@ -39,7 +39,7 @@ class _Root extends ConsumerWidget {
 
     return switch (profile) {
       AsyncData(:final value) =>
-        value == null ? const OnboardingScreen() : const HomeScreen(),
+        value == null ? const OnboardingScreen() : const AppShell(),
 
       // Opening the diary copies no asset and is fast, but it is still I/O.
       // A blank themed screen avoids a spinner that would flash for one frame.

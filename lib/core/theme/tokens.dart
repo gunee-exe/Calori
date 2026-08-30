@@ -192,6 +192,18 @@ abstract final class AppType {
     letterSpacing: -0.28,
   );
 
+  /// The date numeral inside a calendar cell.
+  ///
+  /// Small and light: inside a ring, the ring carries the information and the
+  /// number is only there to say which day it belongs to.
+  static const calendarDay = TextStyle(
+    fontFamily: family,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    height: 1.1,
+    fontFeatures: _tabular,
+  );
+
   /// The selected day's calorie figure on the calendar summary card.
   static const dayKcal = TextStyle(
     fontFamily: family,
