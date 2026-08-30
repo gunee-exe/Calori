@@ -8,6 +8,7 @@ particular — cheap to pull if its licensing has to change.
 from __future__ import annotations
 
 import csv
+import re
 import shutil
 import sys
 import urllib.request
@@ -156,6 +157,42 @@ def read_csv(path: Path) -> Iterator[dict[str, str]]:
     """
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         yield from csv.DictReader(handle)
+
+
+#: Markers national tables use for "below the limit of quantification".
+#: They mean present-but-negligible, which for this app is zero — but they must
+#: be recognised rather than falling through to "missing" and dropping a food.
+_TRACE = re.compile(r"^\s*(traces?|tr|<\s*[\d,.]+)\s*$", re.IGNORECASE)
+
+#: Markers for "not measured". Genuinely unknown, which is *not* zero.
+_UNKNOWN = {"", "-", "n", "nd", "n.d.", "na", "n/a"}
+
+
+def parse_loose(raw: object) -> float | None:
+    """Parse a number from a national food table.
+
+    Returns None when the value is unknown and 0.0 when it is a trace. The
+    distinction decides whether a food is dropped or merely has a zero in one
+    column, so it is worth keeping.
+
+    Handles the French decimal comma, non-breaking spaces used as thousands
+    separators, and numbers stored as text — all three appear in CIQUAL and
+    CoFID, sometimes in the same column.
+    """
+    if isinstance(raw, (int, float)):
+        return float(raw)
+
+    text = str(raw or "").strip()
+    if text.lower() in _UNKNOWN:
+        return None
+    if _TRACE.match(text):
+        return 0.0
+
+    text = text.replace(" ", "").replace(" ", "").replace(",", ".")
+    try:
+        return float(text)
+    except ValueError:
+        return None
 
 
 def to_float(value: str | None, default: float = 0.0) -> float:

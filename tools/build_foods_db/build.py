@@ -30,6 +30,7 @@ from models import FoodRecord  # noqa: E402
 from normalise import normalise, split_prep  # noqa: E402
 from sources.base import ManualDownloadRequired, Source  # noqa: E402
 from sources.ciqual import CIQUAL
+from sources.cofid import COFID
 from sources.indb import INDB
 from sources.usda import FNDDS, FOUNDATION, SR_LEGACY  # noqa: E402
 
@@ -44,6 +45,7 @@ SOURCES: list[Source] = [
     FOUNDATION,
     FNDDS,
     INDB,
+    COFID,
     CIQUAL,
 ]
 

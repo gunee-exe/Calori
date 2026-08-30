@@ -49,30 +49,55 @@ and it only pays off with a barcode scanner, which is out of scope.
 
 ## 2. v1 composition
 
-### Shipped today: 11,889 foods, 34,781 portions, 3.3 MB
+### Shipped today: 17,794 foods, 35,698 portions, 4.2 MB
 
 | Source | Contributed | Notes |
 |---|---:|---|
 | USDA SR Legacy | 6,313 | generic ingredients and single foods |
-| USDA FNDDS | 5,279 | prepared and mixed dishes; richest portion data |
-| USDA Foundation | 297 | newest lab analysis; outranks SR Legacy on overlap |
+| USDA FNDDS | 5,272 | prepared and mixed dishes; richest portion data |
+| CoFID (UK) | 2,608 | British and Commonwealth dishes USDA has no entry for |
+| CIQUAL (FR) | 2,291 | French-language coverage |
+| INDB (India) | 1,014 | Indian recipes **with household portions** |
+| USDA Foundation | 296 | newest lab analysis; outranks SR Legacy on overlap |
 
-13,602 raw rows in, 1,713 exact-name duplicates collapsed. Zero quarantined, 199 warnings
-(kept and reported to `out/warnings.csv`).
+19,768 raw rows in, 1,974 exact-name duplicates collapsed. Zero quarantined,
+287 warnings (kept and reported to `out/warnings.csv`).
 
-> **The download page overstates FNDDS by 60x.** It lists the survey CSV at 200 MB zipped /
-> 1.6 GB unzipped; the actual archive is **3.2 MB**. The whole build downloads under 13 MB.
+INDB is the most valuable row-for-row. USDA knows what "rice, white, cooked"
+is; it does not know what a plate of chicken biryani weighs. INDB gives both,
+in the units people use — "1 bowl", "1 plate", "1 roti". It publishes a
+serving's *nutrients* rather than its weight, so the adapter derives the weight
+from the energy ratio, which is exact because both figures come from the same
+underlying quantity:
 
-> **FNDDS uses a different nutrient numbering scheme.** SR Legacy and Foundation reference
-> FoodData Central ids (1008 for energy); FNDDS references the legacy SR `nutrient_nbr` values
-> (208) — in a column named `nutrient_id`. This does not error, it silently parses to *zero
-> records*. The adapter resolves roles from each archive's own `nutrient.csv` rather than
-> hardcoding either scheme.
+    grams = 100 x serving_kcal / kcal_100g
+
+That yields 36 g for a chapati, 25 g for an idli, 208 g for a plate of biryani.
+
+> **The download page overstates FNDDS by 60x.** It lists the survey CSV at
+> 200 MB zipped / 1.6 GB unzipped; the actual archive is **3.2 MB**. The whole
+> build downloads under 20 MB.
+
+> **FNDDS uses a different nutrient numbering scheme.** SR Legacy and Foundation
+> reference FoodData Central ids (1008 for energy); FNDDS references the legacy
+> SR `nutrient_nbr` values (208) — in a column named `nutrient_id`. This does
+> not error, it silently parses to *zero records*. The adapter resolves roles
+> from each archive's own `nutrient.csv` rather than hardcoding either scheme.
+
+> **Two national tables put kcal and kJ in adjacent columns with near-identical
+> headings.** CIQUAL's energy heading appears twice; CoFID's "Energy (kcal)"
+> sits immediately before "Energy (kJ)". Both adapters exclude the kJ heading
+> explicitly. Matching the first hit would import a 4.184x error wholesale.
 
 ### Still to add
+### Still to add
 
-CoFID, CIQUAL, CNF and Frida for European and Canadian coverage; INDB and the Pakistan FCT for
-South Asian.
+CNF (Canada) and Frida (Denmark). Both publish behind download pages whose
+direct file URLs have moved since this plan was written and need re-finding.
+The Pakistan FCT is PDF-only and needs extraction.
+
+Each is one file in `tools/build_foods_db/sources/` plus one line in
+`build.py`, so the merge ships with whatever is ready.
 
 **FNDDS is the one that matters most.** Prepared and mixed dishes are what people actually
 photograph and log, and FNDDS carries the richest household-portion data of any source here.

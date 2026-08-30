@@ -41,6 +41,18 @@ MAX_KCAL_100G = 920.0
 #: negative is not rounding noise, it is a parse error, and still fails.
 CARB_ROUNDING_SLACK = -1.0
 
+#: Ceiling for a single macro, and for the three together.
+#:
+#: Not 100. CoFID — and several other national tables — express carbohydrate as
+#: **monosaccharide equivalents**: sucrose gains water when it hydrolyses, so
+#: 100 g of sugar is reported as about 105 g of carbohydrate. That is a
+#: convention, not an error, and a 100 g ceiling silently deletes brown sugar,
+#: peppermints, meringue and boiled sweets from the database.
+#:
+#: 110 leaves room for the convention while still catching a column that has
+#: been read in the wrong units.
+MAX_MACRO_100G = 110.0
+
 #: A whole turkey is about 8 kg and a whole watermelon not much less, so the
 #: cap on a single household portion has to be generous. Beyond this the number
 #: is a unit error rather than a portion.
@@ -109,7 +121,7 @@ def check(record: FoodRecord) -> Rejection | None:
             return Rejection(record, "nan", f"{label} is NaN")
         if value < 0:
             return Rejection(record, "negative", f"{label}={value}")
-        if label != "kcal_100g" and value > 100:
+        if label != "kcal_100g" and value > MAX_MACRO_100G:
             return Rejection(
                 record, "macro_over_100", f"{label}={value:.1f}g per 100g"
             )
@@ -124,7 +136,7 @@ def check(record: FoodRecord) -> Rejection | None:
         )
 
     macro_mass = record.protein_100g + record.carbs_100g + record.fat_100g
-    if macro_mass > 100.5:  # half a gram of slack for rounding
+    if macro_mass > MAX_MACRO_100G:
         return Rejection(
             record,
             "mass_over_100",

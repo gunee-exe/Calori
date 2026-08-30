@@ -15,12 +15,11 @@ the same string, the English row should win for the app's main audience.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterator
 from pathlib import Path
 
 from models import FoodRecord, SourceInfo
-from sources.base import download
+from sources.base import download, parse_loose
 
 _URL = (
     'https://ciqual.anses.fr/cms/sites/default/files/inline-files/'
@@ -37,41 +36,6 @@ _KJ_MARKER = 'kj/100'
 _PROTEIN = 'protéines, n x 6.25'
 _CARBS = 'glucides (g/100'
 _FAT = 'lipides (g/100'
-
-#: CIQUAL marks a value below the limit of quantification as "traces" or
-#: "< 0,5". Both mean "present but negligible", which for this app's purposes
-#: is zero — but they must be recognised rather than falling through a
-#: float() and being dropped as missing.
-_TRACE = re.compile(r'^\s*(traces?|<\s*[\d,.]+)\s*$', re.IGNORECASE)
-
-#: "-" is not-measured and "" is not-applicable. Both are genuinely unknown,
-#: which is different from zero and must not be silently turned into one.
-_MISSING = {'', '-', 'nd', 'n.d.'}
-
-
-def parse_number(raw: object) -> float | None:
-    """Parse a CIQUAL cell.
-
-    Returns None for genuinely unknown values and 0.0 for trace amounts. The
-    distinction matters: a missing energy figure should drop the food, while a
-    trace of fat should not.
-    """
-    if isinstance(raw, (int, float)):
-        return float(raw)
-
-    text = str(raw or '').strip()
-    if text.lower() in _MISSING:
-        return None
-    if _TRACE.match(text):
-        return 0.0
-
-    # French decimal comma, and a non-breaking space as a thousands separator.
-    text = text.replace('\xa0', '').replace(' ', '').replace(',', '.')
-    try:
-        return float(text)
-    except ValueError:
-        return None
-
 
 class CiqualSource:
     info = SourceInfo(
@@ -134,7 +98,7 @@ class CiqualSource:
             if not name:
                 continue
 
-            kcal = parse_number(row[kcal_col])
+            kcal = parse_loose(row[kcal_col])
             if kcal is None:
                 # Roughly a sixth of the table has no EU-regulation energy
                 # figure. Those rows are skipped rather than back-calculated:
@@ -160,7 +124,7 @@ class CiqualSource:
 def _or_zero(row: list, column: int | None) -> float:
     if column is None:
         return 0.0
-    return parse_number(row[column]) or 0.0
+    return parse_loose(row[column]) or 0.0
 
 
 CIQUAL = CiqualSource()
