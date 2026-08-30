@@ -2,7 +2,19 @@
     <!-- Required by the photo-analysis Worker call. Debug and profile manifests
          declare this separately for hot reload; without it here, release builds
          have no network at all. -->
+    <!-- Needed by the photo path to reach the Worker. Declared here, outside
+         any build-type manifest, so it is present in RELEASE too: Flutter adds
+         it automatically for debug and profile only, which makes a missing
+         INTERNET permission invisible to every test and fatal in production. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- CAMERA is deliberately NOT declared.
+         image_picker launches the system camera via ACTION_IMAGE_CAPTURE, which
+         needs no permission. But if an app *declares* CAMERA, Android then
+         requires it to be granted before that same intent will fire - so
+         "helpfully" adding it here turns a working capture into a permission
+         denial. Likewise READ_MEDIA_IMAGES: the Android 13+ photo picker gives
+         access to the one image the user chose and nothing else. -->
 
     <application
         android:label="Calori"

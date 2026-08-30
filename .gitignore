@@ -46,3 +46,7 @@ app.*.map.json
 
 # Gradle writes reports here; the root /build/ rule is anchored and misses it.
 /android/build/
+
+# Worker
+worker/node_modules/
+worker/.wrangler/

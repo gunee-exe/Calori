@@ -16,7 +16,7 @@ import '../../core/widgets/section_label.dart';
 import '../../domain/models/day_key.dart';
 import '../../domain/models/entry.dart';
 import '../../domain/repositories/diary_repository.dart';
-import '../search/search_screen.dart';
+import '../photo/capture_sheet.dart';
 import 'providers.dart';
 import 'widgets/date_strip.dart';
 import 'widgets/meal_card.dart';
@@ -166,19 +166,15 @@ class _Meals extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
+class _AddButton extends ConsumerWidget {
   const _AddButton({required this.dayKey});
 
   final int dayKey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SearchScreen(dayKey: dayKey),
-        ),
-      ),
+      onTap: () => showCaptureSheet(context, ref, dayKey: dayKey),
       child: Container(
         width: AppLayout.fabSize,
         height: AppLayout.fabSize,

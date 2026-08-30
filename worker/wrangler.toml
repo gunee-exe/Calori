@@ -1,0 +1,24 @@
+name = "calori-worker"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Rate limiting and the image-hash cache both need somewhere to keep state.
+# Create with:  npx wrangler kv namespace create CALORI_KV
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+[vars]
+# The model slug lives here, never in the APK, so it can be changed without
+# shipping an app update. See 05-build-plan.md 6a.
+MODEL = "google/gemini-2.5-flash"
+FALLBACK_MODEL = "google/gemini-2.5-flash-lite"
+
+# Per-device limits. Generous enough for real use, tight enough that a leaked
+# build cannot run up a bill.
+DAILY_LIMIT = "50"
+HOURLY_LIMIT = "15"
+
+# Secrets — set these, do not put them in this file:
+#   npx wrangler secret put OPENROUTER_API_KEY
+#   npx wrangler secret put APP_SHARED_SECRET
