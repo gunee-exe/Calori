@@ -156,6 +156,14 @@ String _$photoLoggingAvailableHash() =>
 /// `image_picker` resizes during decode, so the full-size original never enters
 /// memory — which matters on the low-end Androids this app targets, where a
 /// 50 MP camera image is enough to be killed for.
+///
+/// **keepAlive is required, not an optimisation.** Nothing watches this while
+/// the camera is open: the caller holds only the notifier. An auto-dispose
+/// provider is therefore torn down during the await, and writing `state` on the
+/// way back throws on a disposed notifier — which surfaces as the camera
+/// closing and absolutely nothing happening. On a real phone the camera app can
+/// also background the whole activity for a minute or more, which makes the
+/// disposal a certainty rather than a race.
 
 @ProviderFor(PhotoCapture)
 final photoCaptureProvider = PhotoCaptureProvider._();
@@ -165,6 +173,14 @@ final photoCaptureProvider = PhotoCaptureProvider._();
 /// `image_picker` resizes during decode, so the full-size original never enters
 /// memory — which matters on the low-end Androids this app targets, where a
 /// 50 MP camera image is enough to be killed for.
+///
+/// **keepAlive is required, not an optimisation.** Nothing watches this while
+/// the camera is open: the caller holds only the notifier. An auto-dispose
+/// provider is therefore torn down during the await, and writing `state` on the
+/// way back throws on a disposed notifier — which surfaces as the camera
+/// closing and absolutely nothing happening. On a real phone the camera app can
+/// also background the whole activity for a minute or more, which makes the
+/// disposal a certainty rather than a race.
 final class PhotoCaptureProvider
     extends $AsyncNotifierProvider<PhotoCapture, File?> {
   /// Picks a photo and downscales it.
@@ -172,13 +188,21 @@ final class PhotoCaptureProvider
   /// `image_picker` resizes during decode, so the full-size original never enters
   /// memory — which matters on the low-end Androids this app targets, where a
   /// 50 MP camera image is enough to be killed for.
+  ///
+  /// **keepAlive is required, not an optimisation.** Nothing watches this while
+  /// the camera is open: the caller holds only the notifier. An auto-dispose
+  /// provider is therefore torn down during the await, and writing `state` on the
+  /// way back throws on a disposed notifier — which surfaces as the camera
+  /// closing and absolutely nothing happening. On a real phone the camera app can
+  /// also background the whole activity for a minute or more, which makes the
+  /// disposal a certainty rather than a race.
   PhotoCaptureProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'photoCaptureProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -191,13 +215,21 @@ final class PhotoCaptureProvider
   PhotoCapture create() => PhotoCapture();
 }
 
-String _$photoCaptureHash() => r'1c609d33040b638df38abf03b5713234a31cd202';
+String _$photoCaptureHash() => r'97a68296207b89adb30e6574dde1c04359ad0585';
 
 /// Picks a photo and downscales it.
 ///
 /// `image_picker` resizes during decode, so the full-size original never enters
 /// memory — which matters on the low-end Androids this app targets, where a
 /// 50 MP camera image is enough to be killed for.
+///
+/// **keepAlive is required, not an optimisation.** Nothing watches this while
+/// the camera is open: the caller holds only the notifier. An auto-dispose
+/// provider is therefore torn down during the await, and writing `state` on the
+/// way back throws on a disposed notifier — which surfaces as the camera
+/// closing and absolutely nothing happening. On a real phone the camera app can
+/// also background the whole activity for a minute or more, which makes the
+/// disposal a certainty rather than a race.
 
 abstract class _$PhotoCapture extends $AsyncNotifier<File?> {
   FutureOr<File?> build();
@@ -218,21 +250,33 @@ abstract class _$PhotoCapture extends $AsyncNotifier<File?> {
 }
 
 /// Analysis of the captured photo, checking learned values first.
+///
+/// keepAlive for the same reason as [PhotoCapture]: the request is started
+/// before the review screen is pushed, so for the first frames of the
+/// transition nothing is watching it.
 
 @ProviderFor(PhotoAnalysis)
 final photoAnalysisProvider = PhotoAnalysisProvider._();
 
 /// Analysis of the captured photo, checking learned values first.
+///
+/// keepAlive for the same reason as [PhotoCapture]: the request is started
+/// before the review screen is pushed, so for the first frames of the
+/// transition nothing is watching it.
 final class PhotoAnalysisProvider
     extends $AsyncNotifierProvider<PhotoAnalysis, List<ProposedItem>?> {
   /// Analysis of the captured photo, checking learned values first.
+  ///
+  /// keepAlive for the same reason as [PhotoCapture]: the request is started
+  /// before the review screen is pushed, so for the first frames of the
+  /// transition nothing is watching it.
   PhotoAnalysisProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'photoAnalysisProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -245,9 +289,13 @@ final class PhotoAnalysisProvider
   PhotoAnalysis create() => PhotoAnalysis();
 }
 
-String _$photoAnalysisHash() => r'5b98b97b3b352862a33f9451b35087120a5757e5';
+String _$photoAnalysisHash() => r'2cccfb9618803900da47fbad75a8e299af0fb9f8';
 
 /// Analysis of the captured photo, checking learned values first.
+///
+/// keepAlive for the same reason as [PhotoCapture]: the request is started
+/// before the review screen is pushed, so for the first frames of the
+/// transition nothing is watching it.
 
 abstract class _$PhotoAnalysis extends $AsyncNotifier<List<ProposedItem>?> {
   FutureOr<List<ProposedItem>?> build();

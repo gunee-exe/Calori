@@ -149,6 +149,21 @@ abstract final class AppLayout {
   /// Radius of the over-target lap relative to the main ring (68 / 94).
   static const ringOverRadiusFactor = 68.0 / 94.0;
 
+  /// The floating nav bar: 64 tall, inset 16 from each edge, 20 from the
+  /// bottom, fully rounded. It floats *over* the content, so every screen it
+  /// sits on carries [navClearance] of bottom padding.
+  static const navBarHeight = 64.0;
+  static const navBarInset = 16.0;
+  static const navBarBottom = 20.0;
+
+  /// Bottom padding a screen needs so its last row clears the floating bar.
+  /// The prototype uses 96 on Home.
+  static const navClearance = 96.0;
+
+  /// The raised camera button at the centre of the nav bar, and the small
+  /// round add button that sits above the bar on Home. Both are 52.
+  static const navCameraSize = 52.0;
+
   /// Number of discrete pips in the protein bar.
   static const proteinPips = 12;
 }
@@ -201,6 +216,14 @@ abstract final class AppType {
     fontSize: 28,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.28,
+  );
+
+  /// The label that appears inside an active nav tab.
+  static const navLabel = TextStyle(
+    fontFamily: family,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    color: AppColors.primary,
   );
 
   /// The date numeral inside a calendar cell.

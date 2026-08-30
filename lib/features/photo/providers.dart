@@ -67,7 +67,15 @@ bool photoLoggingAvailable(Ref ref) =>
 /// `image_picker` resizes during decode, so the full-size original never enters
 /// memory — which matters on the low-end Androids this app targets, where a
 /// 50 MP camera image is enough to be killed for.
-@riverpod
+///
+/// **keepAlive is required, not an optimisation.** Nothing watches this while
+/// the camera is open: the caller holds only the notifier. An auto-dispose
+/// provider is therefore torn down during the await, and writing `state` on the
+/// way back throws on a disposed notifier — which surfaces as the camera
+/// closing and absolutely nothing happening. On a real phone the camera app can
+/// also background the whole activity for a minute or more, which makes the
+/// disposal a certainty rather than a race.
+@Riverpod(keepAlive: true)
 class PhotoCapture extends _$PhotoCapture {
   @override
   FutureOr<File?> build() => null;
@@ -113,7 +121,11 @@ class PhotoCapture extends _$PhotoCapture {
 }
 
 /// Analysis of the captured photo, checking learned values first.
-@riverpod
+///
+/// keepAlive for the same reason as [PhotoCapture]: the request is started
+/// before the review screen is pushed, so for the first frames of the
+/// transition nothing is watching it.
+@Riverpod(keepAlive: true)
 class PhotoAnalysis extends _$PhotoAnalysis {
   @override
   FutureOr<List<ProposedItem>?> build() => null;

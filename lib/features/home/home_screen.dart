@@ -16,7 +16,8 @@ import '../../core/widgets/section_label.dart';
 import '../../domain/models/day_key.dart';
 import '../../domain/models/entry.dart';
 import '../../domain/repositories/diary_repository.dart';
-import '../photo/capture_sheet.dart';
+import '../photo/capture.dart';
+import '../shell/providers.dart';
 import 'providers.dart';
 import 'widgets/date_strip.dart';
 import 'widgets/meal_card.dart';
@@ -39,11 +40,22 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           // Room at the bottom for the floating add button, which otherwise
           // sits on top of the last card and covers its figures.
+          // Clears the floating nav bar, which draws over this content.
           padding: AppLayout.screenPadding.add(
-            const EdgeInsets.only(bottom: AppLayout.fabSize + 24),
+            const EdgeInsets.only(bottom: AppLayout.navClearance),
           ),
           children: [
-            const DateStrip(),
+            const Row(
+              children: [
+                // Calendar is reached from here rather than from a nav tab.
+                // The prototype has two tabs and a camera; the month view is a
+                // destination you step into from the day you are looking at,
+                // which is also the relationship between them.
+                _CalendarButton(),
+                SizedBox(width: 10),
+                Expanded(child: DateStrip()),
+              ],
+            ),
             const SizedBox(height: 14),
             Text(formatDayKeyLong(dayKey), style: AppType.secondary),
 
@@ -66,7 +78,10 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: _AddButton(dayKey: dayKey),
+      // Sits above the floating nav bar rather than in it, matching the
+      // prototype: the camera is the primary action and keeps the centre.
+      floatingActionButton: const _AddButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
@@ -170,24 +185,64 @@ class _Meals extends StatelessWidget {
   }
 }
 
+/// The small round add button above the nav bar. Manual food entry.
 class _AddButton extends ConsumerWidget {
-  const _AddButton({required this.dayKey});
-
-  final int dayKey;
+  const _AddButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () => showCaptureSheet(context, ref, dayKey: dayKey),
-      child: Container(
-        width: AppLayout.fabSize,
-        height: AppLayout.fabSize,
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-          shape: BoxShape.circle,
-          boxShadow: AppShadows.primaryGlow,
+    return Padding(
+      // Lifts it clear of the floating nav bar below.
+      padding: const EdgeInsets.only(bottom: AppLayout.navClearance - 36),
+      child: Semantics(
+        button: true,
+        label: 'Add food manually',
+        child: GestureDetector(
+          onTap: () => onAddFoodPressed(context, ref),
+          child: Container(
+            width: AppLayout.navCameraSize,
+            height: AppLayout.navCameraSize,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: AppShadows.primaryGlow,
+            ),
+            child: const Icon(Icons.add, color: AppColors.surface, size: 26),
+          ),
         ),
-        child: const Icon(Icons.add, color: AppColors.surface, size: 26),
+      ),
+    );
+  }
+}
+
+/// Opens the month view.
+class _CalendarButton extends ConsumerWidget {
+  const _CalendarButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Semantics(
+      button: true,
+      label: 'Open calendar',
+      child: GestureDetector(
+        onTap: () => ref
+            .read(shellScreenControllerProvider.notifier)
+            .go(ShellScreen.calendar),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: AppLayout.minTapTarget,
+          height: AppLayout.minTapTarget,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AppShadows.card,
+          ),
+          child: const Icon(
+            Icons.calendar_today_outlined,
+            size: 20,
+            color: AppColors.primary,
+          ),
+        ),
       ),
     );
   }

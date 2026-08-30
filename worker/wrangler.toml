@@ -22,3 +22,17 @@ HOURLY_LIMIT = "15"
 # Secrets — set these, do not put them in this file:
 #   npx wrangler secret put OPENROUTER_API_KEY
 #   npx wrangler secret put APP_SHARED_SECRET
+
+# Observability, kept here so a `wrangler deploy` cannot silently undo what was
+# switched on in the dashboard. Cloudflare warns about exactly this: settings
+# changed in the UI are not written back to your config, so the next CLI deploy
+# would push the file's values over them — and logs going quiet is the last
+# thing you want to discover while debugging a failing photo.
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+persist = true
+invocation_logs = true
+head_sampling_rate = 1

@@ -1,89 +1,162 @@
-/// The bottom navigation shell.
+/// The floating navigation bar and the screens it holds.
 ///
-/// Three destinations, and the camera is not one of them: the photo path is
-/// reached from the Home FAB, because logging is an action rather than a place.
+/// Two tabs, not three. The prototype's nav is `Home | camera | Goal`, with the
+/// camera raised out of the bar between them — logging is the app's primary
+/// action, so it gets the centre and a shape nothing else has.
+///
+/// **Calendar is not a tab.** It is reached from the button beside the date
+/// strip on Home, and it keeps the nav bar visible while showing neither tab as
+/// active. That mirrors the prototype exactly, where `tab()` marks a tab active
+/// only when `screen === id`.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/motion.dart';
 import '../../core/theme/tokens.dart';
 import '../calendar/calendar_screen.dart';
 import '../goal/goal_screen.dart';
+import '../photo/capture.dart';
 import '../home/home_screen.dart';
+import 'providers.dart';
 
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key});
 
   @override
-  State<AppShell> createState() => _AppShellState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final screen = ref.watch(shellScreenControllerProvider);
 
-class _AppShellState extends State<AppShell> {
-  int _index = 0;
-
-  static const _destinations = [
-    (icon: Icons.today_outlined, active: Icons.today, label: 'Today'),
-    (
-      icon: Icons.calendar_month_outlined,
-      active: Icons.calendar_month,
-      label: 'Calendar',
-    ),
-    (icon: Icons.flag_outlined, active: Icons.flag, label: 'Goal'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: IndexedStack(
-        // IndexedStack rather than swapping children: it keeps each tab's
-        // scroll position and its providers alive, so returning to Today does
-        // not re-run the ring's entry animation or reset the date strip.
-        index: _index,
-        children: const [HomeScreen(), CalendarScreen(), GoalScreen()],
-      ),
-      bottomNavigationBar: _NavBar(
-        index: _index,
-        onSelect: (i) => setState(() => _index = i),
-        destinations: _destinations,
+      // The bar floats over the content rather than displacing it, so each
+      // screen carries its own bottom padding to clear it.
+      body: Stack(
+        children: [
+          IndexedStack(
+            // IndexedStack rather than swapping children: it keeps each
+            // screen's scroll position and providers alive, so returning to
+            // Home does not re-run the ring's entry animation.
+            index: screen.index,
+            children: const [HomeScreen(), CalendarScreen(), GoalScreen()],
+          ),
+          const Positioned(
+            left: 16,
+            right: 16,
+            bottom: 20,
+            child: FloatingNavBar(),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _NavBar extends StatelessWidget {
-  const _NavBar({
-    required this.index,
-    required this.onSelect,
-    required this.destinations,
+class FloatingNavBar extends ConsumerWidget {
+  const FloatingNavBar({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final screen = ref.watch(shellScreenControllerProvider);
+
+    return Container(
+      height: AppLayout.navBarHeight,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppLayout.navBarHeight / 2),
+        boxShadow: AppShadows.floating,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Center(
+              child: _NavTab(
+                icon: Icons.home_outlined,
+                label: 'Home',
+                active: screen == ShellScreen.home,
+                onTap: () => ref
+                    .read(shellScreenControllerProvider.notifier)
+                    .go(ShellScreen.home),
+              ),
+            ),
+          ),
+          // Fixed width so the two tabs stay symmetric regardless of which
+          // one is expanded showing its label.
+          const SizedBox(width: 80, child: Center(child: CameraButton())),
+          Expanded(
+            child: Center(
+              child: _NavTab(
+                icon: Icons.person_outline,
+                label: 'Goal',
+                active: screen == ShellScreen.goal,
+                onTap: () => ref
+                    .read(shellScreenControllerProvider.notifier)
+                    .go(ShellScreen.goal),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A tab that shows its label only while active.
+///
+/// The label appearing is the whole animation: the pill grows, the icon takes
+/// on the primary colour, and the word fades in slightly behind the growth so
+/// it does not appear to stretch.
+class _NavTab extends StatelessWidget {
+  const _NavTab({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
   });
 
-  final int index;
-  final ValueChanged<int> onSelect;
-  final List<({IconData icon, IconData active, String label})> destinations;
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 60,
+    final colour = active ? AppColors.primary : AppColors.textTertiary;
+
+    return Semantics(
+      button: true,
+      selected: active,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: AppMotion.durationFor(context, AppMotion.navPill),
+          curve: AppMotion.standard,
+          height: AppLayout.minTapTarget,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primaryContainer : Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+          ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final (i, destination) in destinations.indexed)
-                Expanded(
-                  child: _NavItem(
-                    destination: destination,
-                    selected: i == index,
-                    onTap: () => onSelect(i),
-                  ),
-                ),
+              Icon(icon, size: 22, color: colour),
+              AnimatedSize(
+                duration: AppMotion.durationFor(context, AppMotion.navPill),
+                curve: AppMotion.standard,
+                child: active
+                    ? Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(
+                          label,
+                          style: AppType.navLabel.copyWith(color: colour),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),
@@ -92,46 +165,37 @@ class _NavBar extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.destination,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final ({IconData icon, IconData active, String label}) destination;
-  final bool selected;
-  final VoidCallback onTap;
+/// The raised camera button at the centre of the nav bar.
+///
+/// Lifted 12px out of the bar so it reads as the primary action rather than a
+/// third tab. It opens the camera directly — one tap from anywhere to a photo,
+/// which is the point of putting it here.
+class CameraButton extends ConsumerWidget {
+  const CameraButton({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final colour = selected ? AppColors.primary : AppColors.textTertiary;
-
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: destination.label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: AppMotion.durationFor(context, AppMotion.fadeIn),
-          curve: AppMotion.standard,
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                selected ? destination.active : destination.icon,
-                size: 22,
-                color: colour,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                destination.label,
-                style: AppType.caption.copyWith(color: colour),
-              ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Transform.translate(
+      offset: const Offset(0, -12),
+      child: Semantics(
+        button: true,
+        label: 'Take a photo of your food',
+        child: GestureDetector(
+          onTap: () => onCapturePressed(context, ref),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: AppLayout.navCameraSize,
+            height: AppLayout.navCameraSize,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: AppShadows.primaryGlow,
+            ),
+            child: const Icon(
+              Icons.photo_camera_outlined,
+              color: AppColors.surface,
+              size: 24,
+            ),
           ),
         ),
       ),

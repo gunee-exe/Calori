@@ -52,6 +52,9 @@ abstract final class AppMotion {
   /// The Save button's 4px hop on commit.
   static const savePop = Duration(milliseconds: 420);
 
+  /// The nav tab's pill growing and its label fading in.
+  static const navPill = Duration(milliseconds: 320);
+
   /// Blur/opacity settle when a low-confidence item is confirmed.
   static const confidenceSettle = Duration(milliseconds: 260);
 
