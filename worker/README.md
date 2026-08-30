@@ -110,21 +110,51 @@ All four flags matter:
 
 ### 7. Build the app against it
 
-The endpoint and the shared secret are compile-time constants, and are
-deliberately not committed:
+The endpoint and the shared secret are compiled **into** the APK — they are not
+settings the app can be told about later, which is why this one step is a
+terminal command rather than a screen.
 
-```bash
-flutter build apk --release \
-  --dart-define=CALORI_WORKER_URL=https://calori-worker.<your-subdomain>.workers.dev/analyze \
-  --dart-define=CALORI_WORKER_SECRET=<the APP_SHARED_SECRET you invented>
+**Get the two values.**
+
+- **The URL** is on the Worker's overview page in the dashboard, shaped like
+  `https://calori-worker.<your-subdomain>.workers.dev`. Add **`/analyze`** to
+  the end. (`/health` is only for the check in step 6; the app posts photos to
+  `/analyze`.)
+- **The secret** is the `APP_SHARED_SECRET` you invented in step 4. Cloudflare
+  will not show it back to you — that is what "Secret" means — so if you did
+  not save it, set a new one in **Settings → Variables and Secrets** and use
+  that.
+
+**Put them in a file** rather than on the command line, so the secret stays out
+of your shell history:
+
+1. Copy `worker-config.example.json` (in the project root) to
+   `worker-config.json`.
+2. Fill in both values.
+
+```json
+{
+  "CALORI_WORKER_URL": "https://calori-worker.abc123.workers.dev/analyze",
+  "CALORI_WORKER_SECRET": "the-long-random-string-you-invented"
+}
 ```
 
-Note the `/analyze` on the end of the URL — `/health` is only for the check
-above.
+`worker-config.json` is gitignored. Do not commit it.
 
-**A build without these is valid and fully functional.** The camera options are
-simply not offered, and manual logging — the path that always works — is
-unaffected.
+**Build:**
+
+```bash
+flutter build apk --release --dart-define-from-file=worker-config.json
+```
+
+The APK lands at `build/app/outputs/flutter-apk/app-release.apk`. Install it
+with `flutter install`, or copy it to a phone and open it.
+
+**A build without this file is valid and fully functional.** The two camera
+options are simply not offered, and manual logging — the path that always
+works — is unaffected. That is deliberate: `photoLoggingAvailable` is false
+when the URL is empty, so an unconfigured build hides the feature rather than
+offering one that fails.
 
 ### 8. Watch it run
 

@@ -50,3 +50,7 @@ app.*.map.json
 # Worker
 worker/node_modules/
 worker/.wrangler/
+
+# Real Worker endpoint and shared secret. Copy worker-config.example.json to
+# worker-config.json and fill it in; never commit the filled-in copy.
+worker-config.json

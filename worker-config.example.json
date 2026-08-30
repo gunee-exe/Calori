@@ -1,0 +1,4 @@
+{
+  "CALORI_WORKER_URL": "https://calori-worker.YOUR-SUBDOMAIN.workers.dev/analyze",
+  "CALORI_WORKER_SECRET": "the APP_SHARED_SECRET you invented in step 4"
+}
