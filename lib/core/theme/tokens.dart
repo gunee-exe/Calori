@@ -159,6 +159,14 @@ abstract final class AppLayout {
 /// Every style that can render a number carries [FontFeature.tabularFigures].
 /// Without it, digit widths shift as values animate and the ring percentage and
 /// macro totals visibly jitter.
+/// Type scale.
+///
+/// **Every style carries an explicit colour.** That is not redundancy: this
+/// theme assigns these tokens straight into `TextTheme`, replacing Material's
+/// own coloured defaults. A style with a null colour therefore resolves to
+/// Flutter's fallback, which is **white** — invisible on this app's near-white
+/// background, and invisible in widget tests too, because `find.text()` does
+/// not care what colour something rendered in.
 abstract final class AppType {
   static const family = 'Poppins';
 
@@ -167,6 +175,7 @@ abstract final class AppType {
   /// The daily target on the Goal and onboarding result screens.
   static const goalTarget = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 56,
     fontWeight: FontWeight.w600,
     height: 1.0,
@@ -177,6 +186,7 @@ abstract final class AppType {
   /// The percentage inside the home ring.
   static const ringPercent = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 48,
     fontWeight: FontWeight.w600,
     height: 1.0,
@@ -187,6 +197,7 @@ abstract final class AppType {
   /// Screen titles: "Add food", "Goal".
   static const screenTitle = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 28,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.28,
@@ -198,6 +209,7 @@ abstract final class AppType {
   /// number is only there to say which day it belongs to.
   static const calendarDay = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 12,
     fontWeight: FontWeight.w500,
     height: 1.1,
@@ -207,6 +219,7 @@ abstract final class AppType {
   /// The selected day's calorie figure on the calendar summary card.
   static const dayKcal = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 26,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.26,
@@ -216,6 +229,7 @@ abstract final class AppType {
   /// Numbers on the calendar stat cards.
   static const statNumber = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 22,
     fontWeight: FontWeight.w600,
     fontFeatures: _tabular,
@@ -224,6 +238,7 @@ abstract final class AppType {
   /// Section headers, month label, stepper values.
   static const sectionHeader = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 18,
     fontWeight: FontWeight.w600,
     fontFeatures: _tabular,
@@ -232,6 +247,7 @@ abstract final class AppType {
   /// The calorie figure on a meal card.
   static const mealKcal = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 17,
     fontWeight: FontWeight.w600,
     fontFeatures: _tabular,
@@ -239,6 +255,7 @@ abstract final class AppType {
 
   static const bodyStrong = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 16,
     fontWeight: FontWeight.w500,
     fontFeatures: _tabular,
@@ -246,6 +263,7 @@ abstract final class AppType {
 
   static const body = TextStyle(
     fontFamily: family,
+    color: AppColors.textPrimary,
     fontSize: 15,
     fontWeight: FontWeight.w500,
   );
