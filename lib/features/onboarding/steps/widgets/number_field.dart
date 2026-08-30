@@ -15,6 +15,7 @@ class NumberField extends StatelessWidget {
     required this.controller,
     required this.suffix,
     this.label,
+    this.focusNode,
     this.autofocus = false,
     this.inputFormatters,
     this.onChanged,
@@ -27,6 +28,7 @@ class NumberField extends StatelessWidget {
   final String suffix;
 
   final String? label;
+  final FocusNode? focusNode;
   final bool autofocus;
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
@@ -55,6 +57,7 @@ class NumberField extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  focusNode: focusNode,
                   autofocus: autofocus,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,

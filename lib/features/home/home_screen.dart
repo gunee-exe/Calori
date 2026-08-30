@@ -37,7 +37,11 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: AppLayout.screenPadding,
+          // Room at the bottom for the floating add button, which otherwise
+          // sits on top of the last card and covers its figures.
+          padding: AppLayout.screenPadding.add(
+            const EdgeInsets.only(bottom: AppLayout.fabSize + 24),
+          ),
           children: [
             const DateStrip(),
             const SizedBox(height: 14),

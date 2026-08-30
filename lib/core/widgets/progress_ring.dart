@@ -38,31 +38,52 @@ class CalorieRing extends StatelessWidget {
 
   final Widget? center;
 
+  /// The most of the available width the ring may occupy.
+  static const _maxWidthFraction = 0.62;
+
   @override
   Widget build(BuildContext context) {
     final target = progress.isFinite && progress > 0 ? progress : 0.0;
     final duration = AppMotion.durationFor(context, AppMotion.ringSweep);
 
-    return SizedBox(
-      width: size,
-      height: size,
-      child: TweenAnimationBuilder<double>(
-        // Keyed on the target so a day change re-runs the sweep rather than
-        // interpolating from wherever the previous day happened to land.
-        key: ValueKey(animate ? target : null),
-        tween: Tween(begin: animate ? 0.0 : target, end: target),
-        duration: animate ? duration : Duration.zero,
-        curve: AppMotion.ringFill,
-        builder: (context, value, child) {
-          return CustomPaint(
-            painter: _RingPainter(progress: value, stroke: stroke),
-            child: child,
-          );
-        },
-        child: center == null
-            ? null
-            : Center(child: center),
-      ),
+    // The design's 224 assumes a ~390pt viewport. On a narrower one — a small
+    // phone, a high display-density setting, or a large system font — a fixed
+    // 224 swells to most of the width and pushes the protein card under the
+    // add button. Capping it as a fraction of what the parent actually offers
+    // keeps the proportion the design intends at every size.
+    //
+    // Measured from the parent's constraints rather than MediaQuery: the ring
+    // should answer to the box it is given, and a MediaQuery that reports no
+    // size — which happens whenever one is substituted wholesale — must not be
+    // able to produce a negative radius.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        final resolved = available.isFinite && available > 0
+            ? math.min(size, available * _maxWidthFraction)
+            : size;
+        final scaled = stroke * (resolved / size);
+
+        return SizedBox(
+          width: resolved,
+          height: resolved,
+          child: TweenAnimationBuilder<double>(
+            // Keyed on the target so a day change re-runs the sweep rather
+            // than interpolating from wherever the previous day landed.
+            key: ValueKey(animate ? target : null),
+            tween: Tween(begin: animate ? 0.0 : target, end: target),
+            duration: animate ? duration : Duration.zero,
+            curve: AppMotion.ringFill,
+            builder: (context, value, child) {
+              return CustomPaint(
+                painter: _RingPainter(progress: value, stroke: scaled),
+                child: child,
+              );
+            },
+            child: center == null ? null : Center(child: center),
+          ),
+        );
+      },
     );
   }
 }

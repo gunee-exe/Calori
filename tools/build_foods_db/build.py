@@ -29,6 +29,8 @@ import writer  # noqa: E402
 from models import FoodRecord  # noqa: E402
 from normalise import normalise, split_prep  # noqa: E402
 from sources.base import ManualDownloadRequired, Source  # noqa: E402
+from sources.ciqual import CIQUAL
+from sources.indb import INDB
 from sources.usda import FNDDS, FOUNDATION, SR_LEGACY  # noqa: E402
 
 #: Every registered adapter. Adding a dataset is one import and one entry.
@@ -41,6 +43,8 @@ SOURCES: list[Source] = [
     SR_LEGACY,
     FOUNDATION,
     FNDDS,
+    INDB,
+    CIQUAL,
 ]
 
 DEFAULT_OUT = HERE.parent.parent / "assets" / "db" / "foods.sqlite"
@@ -138,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  foods      {stats['foods']:,}")
     print(f"  portions   {stats['portions']:,}")
     print(f"  fts rows   {stats['indexed']:,}")
-    print(f"  probe      'rice' -> {stats['probe']}")
+    print(f"  probe      {stats['probe']}")
     print(f"  size       {size_mb:.1f} MB")
     print(f"  written    {args.out}")
 

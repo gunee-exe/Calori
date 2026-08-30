@@ -5,6 +5,8 @@
 /// caused it, updating as the user types.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +28,14 @@ class TargetStep extends ConsumerStatefulWidget {
 }
 
 class _TargetStepState extends ConsumerState<TargetStep> {
+  /// Delays dismissing the keyboard until typing has actually stopped.
+  ///
+  /// Without this, typing "50" refuses at "5" — 5 kg really is below a healthy
+  /// weight — and the keyboard vanishes before the "0" is typed. The refusal
+  /// itself must stay immediate, because that is the whole design; only the
+  /// keyboard waits.
+  Timer? _settle;
+
   late final _target = TextEditingController(
     text: _initial(
       ref.read(onboardingProvider).targetWeightKg ??
@@ -52,6 +62,7 @@ class _TargetStepState extends ConsumerState<TargetStep> {
 
   @override
   void dispose() {
+    _settle?.cancel();
     _target.dispose();
     super.dispose();
   }
@@ -60,6 +71,23 @@ class _TargetStepState extends ConsumerState<TargetStep> {
   Widget build(BuildContext context) {
     final draft = ref.watch(onboardingProvider);
     final preview = ref.watch(goalPreviewProvider);
+
+    // A refusal has to be read, so the keyboard gets out of the way.
+    //
+    // Scrolling the panel into view instead does not work: the keyboard runs
+    // its own ensureVisible for the focused field, the two fight, and the
+    // result is a half-scrolled field with the explanation still hidden.
+    // Dismissing the keyboard is also the honest reading of the moment — the
+    // number has been rejected, so there is nothing more to type until the
+    // user decides what to do about it.
+    ref.listen(goalPreviewProvider, (previous, next) {
+      _settle?.cancel();
+      if (next is! GoalRefused) return;
+
+      _settle = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) FocusManager.instance.primaryFocus?.unfocus();
+      });
+    });
 
     // A refusal is a wall: there is nothing to continue to until the input
     // changes or the offered alternative is taken.
@@ -94,8 +122,11 @@ class _TargetStepState extends ConsumerState<TargetStep> {
               setState(() {});
             },
           ),
-          const SizedBox(height: 24),
-          _Timeframe(weeks: draft.weeks),
+          // Directly beneath the field, not after the slider. On a phone with
+          // the keyboard open the field sits at the bottom of the viewport,
+          // and anything below the slider is off-screen — so a refusal would
+          // grey out Continue while its explanation stayed hidden. A dead
+          // button with no reason is exactly what this design refuses to do.
           const SizedBox(height: 20),
           AnimatedSize(
             duration: AppMotion.durationFor(context, AppMotion.fadeIn),
@@ -103,6 +134,8 @@ class _TargetStepState extends ConsumerState<TargetStep> {
             alignment: Alignment.topLeft,
             child: _Verdict(result: preview),
           ),
+          const SizedBox(height: 24),
+          _Timeframe(weeks: draft.weeks),
         ],
       ),
     );

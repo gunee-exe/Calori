@@ -33,46 +33,48 @@ class _DateStripState extends ConsumerState<DateStrip> {
   static const _chipGap = 8.0;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _centre(animate: false));
-  }
-
-  @override
   void dispose() {
     _scroll.dispose();
     super.dispose();
   }
 
-  void _centre({bool animate = true}) {
-    if (!_scroll.hasClients) return;
+  /// Scrolls the selected day into view.
+  ///
+  /// Only needed when the user picks an earlier day; today needs no scroll at
+  /// all because the list is reversed (see [_days]).
+  void _centre() {
+    if (!_scroll.hasClients || !_scroll.position.hasContentDimensions) return;
 
-    final days = _days();
-    final index = days.indexOf(ref.read(selectedDayProvider));
+    final index = _days().indexOf(ref.read(selectedDayProvider));
     if (index < 0) return;
 
     final viewport = _scroll.position.viewportDimension;
-    final target = (index * (_chipWidth + _chipGap)) -
-        (viewport - _chipWidth) / 2;
-    final clamped = target.clamp(0.0, _scroll.position.maxScrollExtent);
+    final target =
+        (index * (_chipWidth + _chipGap)) - (viewport - _chipWidth) / 2;
 
-    if (animate) {
-      _scroll.animateTo(
-        clamped,
-        duration: AppMotion.durationFor(context, AppMotion.screenIn),
-        curve: AppMotion.standard,
-      );
-    } else {
-      _scroll.jumpTo(clamped);
-    }
+    _scroll.animateTo(
+      target.clamp(0.0, _scroll.position.maxScrollExtent),
+      duration: AppMotion.durationFor(context, AppMotion.screenIn),
+      curve: AppMotion.standard,
+    );
   }
 
-  /// The window of days, ending today. Future days are not offered — there is
-  /// nothing to log against them.
+  /// The window of days, **newest first**. Future days are not offered — there
+  /// is nothing to log against them.
+  ///
+  /// Reverse chronological, paired with `reverse: true` on the ListView, so the
+  /// strip reads left-to-right oldest-to-newest on screen while today sits at
+  /// the scroll *origin*. Today is therefore correctly placed on the very first
+  /// frame with no scrolling.
+  ///
+  /// The previous version scrolled to today after layout, and lost the race:
+  /// on the first frame the viewport reports no content dimensions, the clamp
+  /// pinned the strip to the far left, and today — the one day the user
+  /// actually wants — sat half off the right edge.
   List<int> _days() {
     final today = DayKey.today();
     return [
-      for (var offset = _windowDays - 1; offset >= 0; offset--)
+      for (var offset = 0; offset < _windowDays; offset++)
         DayKey.addDays(today, -offset),
     ];
   }
@@ -89,6 +91,8 @@ class _DateStripState extends ConsumerState<DateStrip> {
       child: ListView.separated(
         controller: _scroll,
         scrollDirection: Axis.horizontal,
+        // Origin at the right-hand end, where today is.
+        reverse: true,
         itemCount: _days().length,
         separatorBuilder: (_, _) => const SizedBox(width: _chipGap),
         itemBuilder: (context, index) {

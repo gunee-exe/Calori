@@ -134,6 +134,12 @@ class _Progress extends ConsumerWidget {
 
 /// Shared frame for a step: a question, optional supporting line, the content,
 /// and a continue action pinned to the bottom.
+///
+/// The question is **fixed above the scroll area** rather than inside it. When
+/// the keyboard opens, a scrollable heading gets pushed up and clipped mid-line
+/// — you see the descenders of "How old are you?" and nothing else, which
+/// reads as a rendering fault rather than as scrolling. The question is the
+/// anchor for everything below it, so it stays put and only the content moves.
 class StepScaffold extends StatelessWidget {
   const StepScaffold({
     super.key,
@@ -155,16 +161,23 @@ class StepScaffold extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 12),
+          Text(question, style: AppType.screenTitle),
+          const SizedBox(height: 20),
           Expanded(
             child: ListView(
+              // Bottom padding so the last field can scroll clear of the
+              // viewport edge. Without it the input card sits flush against
+              // the pinned action and its lower rounded corners are clipped,
+              // which reads as a broken card rather than as more to scroll.
+              padding: const EdgeInsets.only(bottom: 12),
+              // The detail line scrolls with the content: it is elaboration,
+              // and losing it to the keyboard costs the user nothing.
               children: [
-                const SizedBox(height: 12),
-                Text(question, style: AppType.screenTitle),
                 if (detail != null) ...[
-                  const SizedBox(height: 8),
                   Text(detail!, style: AppType.secondary),
+                  const SizedBox(height: 24),
                 ],
-                const SizedBox(height: 28),
                 child,
               ],
             ),

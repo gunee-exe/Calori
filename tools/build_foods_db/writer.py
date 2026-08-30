@@ -161,18 +161,34 @@ def verify(path: Path) -> dict[str, int | str]:
                 f"The index did not rebuild; every search would return nothing."
             )
 
-        # A real ranked query, not just a row count.
+        # A real ranked query, not just a row count. The probe term is taken
+        # from the data rather than hardcoded: a French-only or Hindi-only
+        # build has no "rice" in it, and failing that build would be the check
+        # being wrong rather than the database.
+        seed = connection.execute(
+            "SELECT name FROM foods WHERE length(name) > 3 LIMIT 1"
+        ).fetchone()
+        if seed is None:
+            raise AssertionError("the foods table is empty")
+
+        word = "".join(
+            c for c in seed[0].split(",")[0].split()[0] if c.isalnum()
+        )
+        if not word:
+            raise AssertionError(f"no searchable token in {seed[0]!r}")
+
         probe = connection.execute(
             "SELECT f.name FROM foods_fts "
             "JOIN foods f ON f.id = foods_fts.rowid "
             "WHERE foods_fts MATCH ? ORDER BY bm25(foods_fts) LIMIT 1",
-            ('"rice"*',),
+            (f'"{word}"*',),
         ).fetchone()
 
         if probe is None:
             raise AssertionError(
-                "FTS query for 'rice' returned nothing. The index exists but "
-                "is not searchable."
+                f"FTS query for {word!r} returned nothing, even though that "
+                f"word came from a row in the foods table. The index exists "
+                f"but is not searchable."
             )
 
         return {

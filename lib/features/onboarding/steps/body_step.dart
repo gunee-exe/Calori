@@ -17,6 +17,13 @@ class BodyStep extends ConsumerStatefulWidget {
 }
 
 class _BodyStepState extends ConsumerState<BodyStep> {
+  /// Focus is requested after the step transition rather than via `autofocus`.
+  ///
+  /// The AnimatedSwitcher keeps the outgoing step mounted while it fades, so
+  /// two autofocus requests overlap and the incoming field loses — the user
+  /// lands on a step with no keyboard and has to tap the field themselves.
+  final _heightFocus = FocusNode();
+
   late final _height = TextEditingController(
     text: _initial(ref.read(onboardingProvider).heightCm),
   );
@@ -45,7 +52,16 @@ class _BodyStepState extends ConsumerState<BodyStep> {
       _weightValue! <= 400;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _heightFocus.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
+    _heightFocus.dispose();
     _height.dispose();
     _weight.dispose();
     super.dispose();
@@ -77,9 +93,9 @@ class _BodyStepState extends ConsumerState<BodyStep> {
         children: [
           NumberField(
             controller: _height,
+            focusNode: _heightFocus,
             label: 'Height',
             suffix: 'cm',
-            autofocus: true,
             inputFormatters: formatters,
             onChanged: (_) => setState(() {}),
           ),
