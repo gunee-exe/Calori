@@ -30,7 +30,10 @@ class CalendarScreen extends ConsumerWidget {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: ListView(
-          padding: AppLayout.screenPadding,
+          // Clears the floating nav bar, which draws over this content.
+          padding: AppLayout.screenPadding.add(
+            const EdgeInsets.only(bottom: AppLayout.navClearance),
+          ),
           children: [
             const _MonthHeader(),
             const SizedBox(height: 18),
