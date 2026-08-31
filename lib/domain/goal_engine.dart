@@ -76,6 +76,19 @@ abstract final class GoalEngine {
   /// instead of [fatEnergyShare] at low calorie targets.
   static const minFatGPerKg = 0.6;
 
+  /// The protein floor [_macros] falls back to when the calorie target cannot
+  /// fund [proteinGPerKg]. Still within the range usually given for preserving
+  /// lean mass in a deficit; it is a fallback, not a recommendation.
+  static const minProteinGPerKg = 1.2;
+
+  /// The furthest ahead a target date is ever projected.
+  ///
+  /// Ten years. Past this the 7700 kcal/kg approximation has long stopped
+  /// meaning anything, and the alternative is worse: a rate of a few grams a
+  /// week divides into a date centuries out, which [_formatDate] renders as a
+  /// perfectly cheerful "12 March".
+  static const maxProjectionWeeks = 520.0;
+
   /// Applies every safety rule and returns a target, a correction, or a refusal.
   static GoalResult calculate(GoalRequest r) {
     // ---- 1. Age. The only hard stop with no way forward. ----------------
@@ -197,7 +210,10 @@ abstract final class GoalEngine {
         ? tdee - dailyDelta
         : tdee + dailyDelta;
 
-    final achievableWeeks = totalChangeKg / rate;
+    final achievableWeeks = math.min(
+      maxProjectionWeeks,
+      totalChangeKg / rate,
+    );
     final honestDate = _dateAfterWeeks(r.today, achievableWeeks);
 
     final target = _targetFrom(
@@ -337,14 +353,50 @@ abstract final class GoalEngine {
   /// Protein is set first because it is the macro the app makes prominent;
   /// fat takes a share of what remains, subject to a per-kg floor; carbs take
   /// the rest.
+  ///
+  /// The three are then made to fit inside [kcal]. They did not before: protein
+  /// and fat both scale with bodyweight while the target is capped from below
+  /// by the calorie floor, so a heavy user on a clamped target overran it and
+  /// `carbs` clamped to zero swallowed the evidence. At 120 kg on a 1200 kcal
+  /// floor, protein and fat alone came to 1508 kcal — and the card printed
+  /// three macros summing to more than the number directly above them.
+  ///
+  /// **This changes nothing in the ordinary case.** The reconciliation below
+  /// runs only when the numbers genuinely do not fit; at every plausible
+  /// profile the first two lines are the whole calculation, exactly as before.
   static ({int protein, int carbs, int fat}) _macros(
     int kcal,
     double weightKg,
   ) {
-    final proteinG = (proteinGPerKg * weightKg / 5).round() * 5;
-    final fatG = math
+    var proteinG = (proteinGPerKg * weightKg / 5).round() * 5;
+    var fatG = math
         .max(fatEnergyShare * kcal / 9, minFatGPerKg * weightKg)
         .round();
+
+    if (proteinG * 4 + fatG * 9 > kcal) {
+      // Protein gives way first, down to its floor. Dropping fat is the change
+      // with hormonal consequences, so it is asked second.
+      final minProteinG = (minProteinGPerKg * weightKg / 5).round() * 5;
+      proteinG = math.max(minProteinG, ((kcal - fatG * 9) / 20).floor() * 5);
+
+      if (proteinG * 4 + fatG * 9 > kcal) {
+        final minFatG = (minFatGPerKg * weightKg).round();
+        fatG = math.max(minFatG, ((kcal - proteinG * 4) / 9).floor());
+      }
+
+      // Both at their floors and still over. That is not an arithmetic problem
+      // to paper over — it means the target itself is below what this body can
+      // be fed on, which the calorie floor was supposed to prevent and does not
+      // at high bodyweights. Scaling both to fit keeps the card internally
+      // honest; the goal being out of range is a separate conversation, and one
+      // the refusal machinery above should eventually be having.
+      final over = proteinG * 4 + fatG * 9;
+      if (over > kcal) {
+        final scale = kcal / over;
+        proteinG = (proteinG * scale).floor();
+        fatG = (fatG * scale).floor();
+      }
+    }
 
     final remaining = kcal - proteinG * 4 - fatG * 9;
     final carbsG = math.max(0, (remaining / 4).round());

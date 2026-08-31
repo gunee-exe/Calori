@@ -221,4 +221,113 @@ void main() {
       expect((result as GoalAdjusted).target.dailyKcal, greaterThan(0));
     });
   });
+
+  group('the macro split adds up', () {
+    /// Swept across every profile the engine can be handed.
+    ///
+    /// The bug this guards: protein and fat both scale with bodyweight while
+    /// the target is capped from below by the calorie floor, so at a high
+    /// weight and a low target the two alone exceeded the whole budget — and
+    /// `carbs` clamping to zero swallowed the evidence. The goal card then
+    /// printed three macros summing to more than the calorie figure directly
+    /// above them.
+    test('protein, carbs and fat never exceed the calorie target', () {
+      for (final sex in Sex.values) {
+        for (final activity in ActivityLevel.values) {
+          for (var weightKg = 45.0; weightKg <= 180; weightKg += 5) {
+            for (var heightCm = 150.0; heightCm <= 200; heightCm += 10) {
+              for (final age in [18, 30, 55, 80]) {
+                final result = GoalEngine.calculate(
+                  request(
+                    sex: sex,
+                    age: age,
+                    activity: activity,
+                    weightKg: weightKg,
+                    heightCm: heightCm,
+                    // Deliberately ambitious, so the rate cap and the calorie
+                    // floor both get their chance to bind.
+                    targetWeightKg: weightKg * 0.7,
+                    weeks: 8,
+                  ),
+                );
+
+                final target = switch (result) {
+                  GoalAccepted(:final target) => target,
+                  GoalAdjusted(:final target) => target,
+                  GoalRefused() => null,
+                };
+                if (target == null) continue;
+
+                final macroKcal =
+                    target.proteinG * 4 + target.carbsG * 4 + target.fatG * 9;
+
+                // Five kcal of slack: the three are whole grams, and rounding
+                // carbs to the nearest one can cost two.
+                expect(
+                  macroKcal,
+                  lessThanOrEqualTo(target.dailyKcal + 5),
+                  reason:
+                      '$sex, $age y, $weightKg kg, $heightCm cm, $activity: '
+                      '${target.proteinG} P, ${target.carbsG} C, '
+                      '${target.fatG} F = $macroKcal kcal against a '
+                      '${target.dailyKcal} kcal target',
+                );
+
+                expect(target.proteinG, greaterThan(0));
+                expect(target.carbsG, greaterThanOrEqualTo(0));
+                expect(target.fatG, greaterThan(0));
+              }
+            }
+          }
+        }
+      }
+    });
+
+    test('the reference profile is untouched by the reconciliation', () {
+      // The prototype's own figures. Fitting the macros inside the target must
+      // not move anything here; if it does, it has reached past the cases it
+      // exists for.
+      final target = (GoalEngine.calculate(request()) as GoalAccepted).target;
+      expect(target.dailyKcal, 2160);
+      expect(target.proteinG, 140);
+      expect(target.carbsG, 265);
+      expect(target.fatG, 60);
+    });
+  });
+
+  group('projected dates', () {
+    test('a near-zero rate does not project a date centuries out', () {
+      // A TDEE barely above the calorie floor leaves almost nothing for a
+      // deficit, so totalChange / rate ran away — and _formatDate rendered the
+      // result as a perfectly cheerful "12 March".
+      for (var weightKg = 46.0; weightKg <= 70; weightKg += 2) {
+        final result = GoalEngine.calculate(
+          request(
+            sex: Sex.female,
+            age: 80,
+            heightCm: 150,
+            weightKg: weightKg,
+            targetWeightKg: weightKg - 1,
+            activity: ActivityLevel.sedentary,
+            weeks: 1,
+          ),
+        );
+
+        final target = switch (result) {
+          GoalAccepted(:final target) => target,
+          GoalAdjusted(:final target) => target,
+          GoalRefused() => null,
+        };
+
+        final date = target?.targetDate;
+        if (date == null) continue;
+
+        expect(
+          date.difference(today).inDays,
+          lessThanOrEqualTo((GoalEngine.maxProjectionWeeks * 7).ceil()),
+          reason: 'at $weightKg kg the target date landed on $date',
+        );
+      }
+    });
+  });
 }
