@@ -18,6 +18,7 @@ import '../../../data/providers.dart';
 import '../../../domain/models/enums.dart';
 import '../../../domain/models/food.dart';
 import '../../../domain/repositories/diary_repository.dart';
+import '../../shell/providers.dart';
 
 class FoodResultCard extends ConsumerStatefulWidget {
   const FoodResultCard({
@@ -115,7 +116,22 @@ class _FoodResultCardState extends ConsumerState<FoodResultCard> {
       );
 
       if (!mounted) return;
-      navigator.pop();
+
+      // Pushed as a route — the review screen's "add something it missed" —
+      // this pops back to where it came from. As the shell's *destination*
+      // there is nothing above AppShell, and `Navigator.pop` (unlike
+      // `maybePop`) does not consult `canPop`: it popped the app's only route
+      // and left an empty Navigator painting black until the process was
+      // restarted. That was the black screen after logging anything by hand.
+      //
+      // Going Home is also simply the better outcome: the ring absorbs what
+      // was just logged while you are still looking at it.
+      if (navigator.canPop()) {
+        navigator.pop();
+      } else {
+        ref.read(shellScreenControllerProvider.notifier).go(ShellScreen.home);
+      }
+
       messenger.showSnackBar(
         SnackBar(
           content: Text('${widget.food.name} added'),

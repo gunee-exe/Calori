@@ -14,6 +14,7 @@ import '../../core/widgets/section_label.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/food.dart';
 import '../home/providers.dart';
+import '../shell/providers.dart';
 import 'providers.dart';
 import 'widgets/food_result_card.dart';
 
@@ -38,6 +39,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _focus = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    // Pushed as a route this screen is the only thing on screen, so the
+    // keyboard belongs up straight away. Post-frame rather than `autofocus`
+    // for the same reason as the onboarding steps: the route transition keeps
+    // the outgoing screen mounted, and two focus requests overlap.
+    if (widget.dayKey != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focus.requestFocus();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _focus.dispose();
@@ -55,6 +70,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // the nav bar is the way out, and a close button beside it would be two
     // controls doing one job.
     final pushed = widget.dayKey != null;
+
+    // Focus is taken here rather than with `autofocus`. IndexedStack builds
+    // every shell destination at launch, so an autofocusing field took focus
+    // while offstage and raised the keyboard over Home the instant the app
+    // opened. It is also given up on the way out: this screen stays mounted in
+    // the stack, and a keyboard left behind would sit over Home.
+    ref.listen(shellScreenControllerProvider, (previous, next) {
+      if (widget.dayKey != null) return;
+      if (next == ShellScreen.search) {
+        _focus.requestFocus();
+      } else if (previous == ShellScreen.search) {
+        _focus.unfocus();
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -118,7 +147,6 @@ class _SearchField extends ConsumerWidget {
             child: TextField(
               controller: controller,
               focusNode: focus,
-              autofocus: true,
               textInputAction: TextInputAction.search,
               style: AppType.body,
               decoration: const InputDecoration(

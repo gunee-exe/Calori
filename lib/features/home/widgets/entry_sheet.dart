@@ -110,7 +110,11 @@ class EntrySheet extends ConsumerWidget {
               onPressed: () async {
                 final navigator = Navigator.of(context);
                 await ref.read(diaryRepositoryProvider).deleteEntry(entry.id);
-                navigator.pop();
+                // Guarded, because this is racing the rebuild above: deleting
+                // the entry makes `entry` null, which schedules its own
+                // post-frame `maybePop`. Whichever loses would pop a second
+                // route and take the shell with it, leaving a black screen.
+                if (navigator.canPop()) navigator.pop();
               },
             ),
           ],
