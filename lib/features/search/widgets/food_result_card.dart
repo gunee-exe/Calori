@@ -12,8 +12,10 @@ import '../../../core/format.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/calori_card.dart';
+import '../../../core/widgets/macro_row.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/section_label.dart';
+import '../../../core/widgets/stepper_row.dart';
 import '../../../data/providers.dart';
 import '../../../domain/models/enums.dart';
 import '../../../domain/models/food.dart';
@@ -231,8 +233,6 @@ class _Picker extends StatelessWidget {
   final ValueChanged<double> onQuantity;
   final VoidCallback onSave;
 
-  static const _quantities = [0.5, 1.0, 2.0, 3.0];
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -240,43 +240,57 @@ class _Picker extends StatelessWidget {
       children: [
         const SizedBox(height: 14),
         const Divider(height: 1),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
-        // Household measures first. Foods with several get all of them; foods
-        // with none fall back to grams, which is what the quantity chips then
-        // multiply.
-        if (food.portions.length > 1) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
+        // Two questions, asked separately and labelled.
+        //
+        // They used to be two unlabelled rows of chips that *both* named the
+        // portion — "1 cup" sitting directly above "2 × 1 cup" — so which row
+        // chose the serving and which the count was genuinely unreadable. This
+        // is the split every food tracker settles on for the same reason: pick
+        // a serving, then say how many.
+        const SectionLabel('Serving'),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            // Shown even when there is only one, so the serving in use is
+            // named rather than silently implied. A food with no household
+            // measure gets a grams chip for exactly the same reason: 100 g was
+            // previously an invisible default that the count then multiplied.
+            if (food.portions.isEmpty)
+              SelectableChip(label: '100 g', selected: true, onTap: () {})
+            else
               for (final p in food.portions.take(6))
                 SelectableChip(
                   label: p.label,
                   selected: p.label == portion?.label,
                   onTap: () => onPortion(p),
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final q in _quantities)
-              SelectableChip(
-                label: portion == null
-                    ? '${formatQuantity(q)} × 100 g'
-                    : '${formatQuantity(q)} × ${portion!.label}',
-                selected: q == quantity,
-                onTap: () => onQuantity(q),
-              ),
           ],
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
+        const SectionLabel('How many'),
+        const SizedBox(height: 10),
+        StepperRow(
+          label: portion?.label ?? '100 g',
+          detail: 'servings',
+          value: quantity,
+          step: 0.5,
+          min: 0.5,
+          max: 20,
+          // `decimals` is the arithmetic's precision, not just the display's:
+          // leaving it at 0 rounds every half step back to a whole one, so the
+          // count went 1, 2, 3 instead of 1, 1.5, 2. `format` then does the
+          // presenting, because "1.0 servings" reads as machinery.
+          decimals: 1,
+          format: formatQuantity,
+          onChanged: onQuantity,
+        ),
+
+        const SizedBox(height: 18),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -286,15 +300,14 @@ class _Picker extends StatelessWidget {
             Text('${formatKcal(macros.kcal)} kcal', style: AppType.sectionHeader),
           ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          '${formatGrams(macros.proteinG)}P   '
-          '${formatGrams(macros.carbsG)}C   '
-          '${formatGrams(macros.fatG)}F',
-          style: AppType.secondary,
+        const SizedBox(height: 14),
+        MacroRow(
+          proteinG: macros.proteinG,
+          carbsG: macros.carbsG,
+          fatG: macros.fatG,
         ),
 
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
         PillButton(
           label: saving ? 'Saving…' : 'Add to log',
           onPressed: saving ? null : onSave,

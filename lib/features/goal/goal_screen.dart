@@ -19,6 +19,7 @@ import '../../core/format.dart';
 import '../../core/theme/motion.dart';
 import '../../core/theme/tokens.dart';
 import '../../core/widgets/calori_card.dart';
+import '../../core/widgets/macro_row.dart';
 import '../../core/widgets/section_label.dart';
 import '../../core/widgets/stepper_row.dart';
 import '../../data/providers.dart';
@@ -290,17 +291,10 @@ class _TargetCard extends StatelessWidget {
               const SizedBox(height: 18),
               const Divider(height: 1),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _Macro(
-                    label: 'Protein',
-                    value: protein,
-                    colour: AppColors.primary,
-                  ),
-                  _Macro(label: 'Carbs', value: carbs, colour: AppColors.carbs),
-                  _Macro(label: 'Fat', value: fat, colour: AppColors.fat),
-                ],
+              MacroRow(
+                proteinG: protein.toDouble(),
+                carbsG: carbs.toDouble(),
+                fatG: fat.toDouble(),
               ),
             ],
           ],
@@ -337,35 +331,6 @@ class _TargetCard extends StatelessWidget {
     final key = date.year * 10000 + date.month * 100 + date.day;
     return 'At $rate % per week you reach your target '
         'by ${formatDayKeyShort(key)}.';
-  }
-}
-
-class _Macro extends StatelessWidget {
-  const _Macro({
-    required this.label,
-    required this.value,
-    required this.colour,
-  });
-
-  final String label;
-  final int value;
-  final Color colour;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: colour, shape: BoxShape.circle),
-        ),
-        const SizedBox(height: 8),
-        Text('$value g', style: AppType.bodyStrong),
-        const SizedBox(height: 2),
-        Text(label, style: AppType.caption),
-      ],
-    );
   }
 }
 

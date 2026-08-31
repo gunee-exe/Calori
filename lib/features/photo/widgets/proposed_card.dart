@@ -19,6 +19,7 @@ import '../../../core/format.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/widgets/calori_card.dart';
+import '../../../core/widgets/macro_row.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../data/ai/vision_service.dart';
 import '../../../domain/models/enums.dart';
@@ -124,11 +125,10 @@ class _ProposedCardState extends State<ProposedCard> {
           _Blurred(
             sigma: blur,
             animate: !reduceMotion,
-            child: Text(
-              '${formatGrams(widget.item.macros.proteinG)}P   '
-              '${formatGrams(widget.item.macros.carbsG)}C   '
-              '${formatGrams(widget.item.macros.fatG)}F',
-              style: AppType.secondary,
+            child: MacroRow(
+              proteinG: widget.item.macros.proteinG,
+              carbsG: widget.item.macros.carbsG,
+              fatG: widget.item.macros.fatG,
             ),
           ),
 

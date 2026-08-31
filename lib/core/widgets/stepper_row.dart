@@ -24,6 +24,7 @@ class StepperRow extends StatelessWidget {
     this.max = 999,
     this.decimals = 0,
     this.suffix = '',
+    this.format,
   });
 
   final String label;
@@ -42,6 +43,18 @@ class StepperRow extends StatelessWidget {
   final int decimals;
 
   final String suffix;
+
+  /// Overrides how the value is written, where a fixed number of decimals is
+  /// the wrong shape for it. A servings count stepping by 0.5 wants "1" and
+  /// "1.5"; `toStringAsFixed(1)` insists on "1.0".
+  ///
+  /// Display only. [decimals] still governs the precision each step is rounded
+  /// to, so a fractional [step] needs it set even when this is supplied —
+  /// otherwise every half step is rounded straight back to a whole one.
+  final String Function(double)? format;
+
+  String get _text =>
+      format == null ? value.toStringAsFixed(decimals) : format!(value);
 
   bool get _canDecrease => value - step >= min - 0.0001;
   bool get _canIncrease => value + step <= max + 0.0001;
@@ -82,7 +95,7 @@ class StepperRow extends StatelessWidget {
           SizedBox(
             width: 74,
             child: Text(
-              '${value.toStringAsFixed(decimals)}$suffix',
+              '$_text$suffix',
               style: AppType.bodyStrong,
               textAlign: TextAlign.center,
             ),
