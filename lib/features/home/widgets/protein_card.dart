@@ -46,14 +46,18 @@ class ProteinCard extends StatelessWidget {
           const SizedBox(height: 18),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          Row(
+          // Wrap, not Row: on a 320pt phone "Carbs 114 g" and "Fat 40 g"
+          // together overrun the card, and these are the two figures the
+          // design is happiest to let move.
+          Wrap(
+            spacing: 26,
+            runSpacing: 8,
             children: [
               MacroDot(
                 color: AppColors.carbs,
                 label: 'Carbs',
                 value: '${formatGrams(totals.consumed.carbsG)} g',
               ),
-              const SizedBox(width: 26),
               MacroDot(
                 color: AppColors.fat,
                 label: 'Fat',

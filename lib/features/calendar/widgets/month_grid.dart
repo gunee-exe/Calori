@@ -24,9 +24,7 @@ class MonthGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final month = ref.watch(visibleMonthProvider);
     final selected = ref.watch(selectedCalendarDayProvider);
-    final cells = monthGridCells(month.year, month.month);
     final today = DayKey.today();
 
     return Column(
@@ -42,7 +40,88 @@ class MonthGrid extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 10),
-        GridView.builder(
+        _Grid(totals: totals, selected: selected, today: today),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+        const CalendarLegend(),
+      ],
+    );
+  }
+}
+
+/// What the rings mean.
+///
+/// Three states need distinguishing and only two of them are a ring, so a key
+/// is not decoration here — without it, the grey ring and the small dot are
+/// indistinguishable guesses.
+class CalendarLegend extends StatelessWidget {
+  const CalendarLegend({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Wrap, not Row: three keys plus their labels overflow a narrow phone by
+    // about 16px, and a legend that clips is worse than one on two lines.
+    return const Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 14,
+      runSpacing: 6,
+      children: [
+        _Key(colour: AppColors.primary, label: 'on target'),
+        _Key(colour: AppColors.neutralOver, label: 'over'),
+        _Key(colour: AppColors.neutralOver, label: 'not logged', dot: true),
+      ],
+    );
+  }
+}
+
+class _Key extends StatelessWidget {
+  const _Key({required this.colour, required this.label, this.dot = false});
+
+  final Color colour;
+  final String label;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // A ring for the two logged states, a dot for the absent one — the
+        // same shapes the grid uses, at the same weight.
+        Container(
+          width: dot ? 5 : 11,
+          height: dot ? 5 : 11,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dot ? colour : null,
+            border: dot ? null : Border.all(color: colour, width: 1.6),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: AppType.caption),
+      ],
+    );
+  }
+}
+
+class _Grid extends ConsumerWidget {
+  const _Grid({
+    required this.totals,
+    required this.selected,
+    required this.today,
+  });
+
+  final Map<int, DayTotals> totals;
+  final int? selected;
+  final int today;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final month = ref.watch(visibleMonthProvider);
+    final cells = monthGridCells(month.year, month.month);
+
+    return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: cells.length,
@@ -66,8 +145,6 @@ class MonthGrid extends ConsumerWidget {
                   .select(dayKey == selected ? null : dayKey),
             );
           },
-        ),
-      ],
     );
   }
 }

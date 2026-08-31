@@ -124,55 +124,30 @@ class _MonthSummary extends ConsumerWidget {
       );
     }
 
-    final dayWord = summary.loggedDays == 1 ? 'day' : 'days';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionLabel('This month'),
-        const SizedBox(height: 12),
+        // Two figures, not four. The design shows an average and a count, and
+        // that is the honest summary of a month: what a typical day looked
+        // like, and how much of the month there is evidence for.
         Row(
           children: [
             Expanded(
               child: _Stat(
-                value: '${summary.loggedDays}',
-                label: '$dayWord logged',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _Stat(
+                label: 'Average',
                 value: formatKcal(summary.avgKcal.toDouble()),
-                label: 'average kcal',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _Stat(
-                value: '${summary.avgProtein} g',
-                label: 'average protein',
+                detail: 'kcal per logged day',
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: _Stat(
-                value: '${summary.onTargetDays}',
-                label: 'days on target',
+                label: 'Logged',
+                value: '${summary.loggedDays}',
+                detail: 'days this month',
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          // Averages are over logged days only. Dividing by the length of the
-          // month would drag every figure toward zero for anyone who missed a
-          // day, turning a summary into a scolding.
-          'Averages cover the ${summary.loggedDays} $dayWord you logged.',
-          style: AppType.caption,
         ),
       ],
     );
@@ -180,10 +155,19 @@ class _MonthSummary extends ConsumerWidget {
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
+  const _Stat({
+    required this.label,
+    required this.value,
+    required this.detail,
+  });
 
-  final String value;
   final String label;
+  final String value;
+
+  /// The qualifier that keeps the number honest — "per *logged* day" rather
+  /// than per day, because dividing by the whole month would drag every
+  /// average toward zero for anyone who missed one.
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +176,11 @@ class _Stat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SectionLabel(label),
+          const SizedBox(height: 6),
           Text(value, style: AppType.statNumber),
           const SizedBox(height: 2),
-          Text(label, style: AppType.caption),
+          Text(detail, style: AppType.caption),
         ],
       ),
     );

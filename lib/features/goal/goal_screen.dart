@@ -66,7 +66,13 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     final weight = _weight ?? profile.weightKg;
     final target = _target ?? profile.targetWeightKg;
     final rate = _rate ?? _rateFrom(profile);
-    final result = _evaluate(profile, weight, target, rate);
+
+    // Until something is actually changed, show what is *saved* rather than a
+    // fresh computation. Re-deriving the rate from a stored target date is
+    // lossy, so recomputing on open can show a number a few kcal from the one
+    // the user agreed to — which reads as the app quietly moving the goalposts.
+    final edited = _weight != null || _target != null || _rate != null;
+    final result = edited ? _evaluate(profile, weight, target, rate) : null;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -79,7 +85,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
           children: [
             const Text('Goal', style: AppType.screenTitle),
             const SizedBox(height: 18),
-            _TargetCard(result: result),
+            _TargetCard(result: result, saved: profile),
             const SizedBox(height: 14),
 
             StepperRow(
@@ -235,17 +241,26 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
 
 /// The daily target, and one line saying what it means.
 class _TargetCard extends StatelessWidget {
-  const _TargetCard({required this.result});
+  const _TargetCard({required this.result, required this.saved});
 
-  final GoalResult result;
+  /// The live verdict, or null when nothing has been edited yet.
+  final GoalResult? result;
+
+  /// What is currently stored, shown when [result] is null.
+  final UserProfile saved;
 
   @override
   Widget build(BuildContext context) {
     final target = switch (result) {
       GoalAccepted(:final target) => target,
       GoalAdjusted(:final target) => target,
-      GoalRefused() => null,
+      _ => null,
     };
+
+    final kcal = target?.dailyKcal ?? (result == null ? saved.dailyKcal : null);
+    final protein = target?.proteinG ?? saved.dailyProteinG;
+    final carbs = target?.carbsG ?? saved.dailyCarbsG;
+    final fat = target?.fatG ?? saved.dailyFatG;
 
     return AnimatedSize(
       duration: AppMotion.durationFor(context, AppMotion.fadeIn),
@@ -259,7 +274,7 @@ class _TargetCard extends StatelessWidget {
             const SizedBox(height: 6),
             Center(
               child: Text(
-                target == null ? '—' : formatKcal(target.dailyKcal.toDouble()),
+                kcal == null ? '—' : formatKcal(kcal.toDouble()),
                 style: AppType.goalTarget.copyWith(color: AppColors.primary),
               ),
             ),
@@ -271,7 +286,7 @@ class _TargetCard extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            if (target != null && result is! GoalRefused) ...[
+            if (kcal != null) ...[
               const SizedBox(height: 18),
               const Divider(height: 1),
               const SizedBox(height: 16),
@@ -280,19 +295,11 @@ class _TargetCard extends StatelessWidget {
                 children: [
                   _Macro(
                     label: 'Protein',
-                    value: target.proteinG,
+                    value: protein,
                     colour: AppColors.primary,
                   ),
-                  _Macro(
-                    label: 'Carbs',
-                    value: target.carbsG,
-                    colour: AppColors.carbs,
-                  ),
-                  _Macro(
-                    label: 'Fat',
-                    value: target.fatG,
-                    colour: AppColors.fat,
-                  ),
+                  _Macro(label: 'Carbs', value: carbs, colour: AppColors.carbs),
+                  _Macro(label: 'Fat', value: fat, colour: AppColors.fat),
                 ],
               ),
             ],
@@ -303,6 +310,7 @@ class _TargetCard extends StatelessWidget {
   }
 
   String _caption() => switch (result) {
+    null => _savedCaption(),
     GoalRefused(:final message) => message,
     GoalAdjusted(:final explanation) => explanation,
     GoalAccepted(:final target) => switch (target.direction) {
@@ -310,6 +318,15 @@ class _TargetCard extends StatelessWidget {
       _ => _pace(target),
     },
   };
+
+  String _savedCaption() {
+    final date = saved.targetDate;
+    if (date == null || saved.targetWeightKg == saved.weightKg) {
+      return 'Enough to hold your current weight.';
+    }
+    final key = date.year * 10000 + date.month * 100 + date.day;
+    return 'On track to reach your target by ${formatDayKeyShort(key)}.';
+  }
 
   String _pace(GoalTarget target) {
     final rate = target.ratePercentPerWeek.abs().toStringAsFixed(1);

@@ -144,18 +144,27 @@ class _NavTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 22, color: colour),
-              AnimatedSize(
+              Flexible(
+                child: AnimatedSize(
                 duration: AppMotion.durationFor(context, AppMotion.navPill),
                 curve: AppMotion.standard,
+                // The label is allowed to shrink. On a 320pt phone the two
+                // tabs plus the fixed 80pt camera slot leave the active pill
+                // about 7px short, and a nav bar that overflows is worse than
+                // one whose word is a little tight.
                 child: active
                     ? Padding(
                         padding: const EdgeInsets.only(left: 8),
                         child: Text(
                           label,
                           style: AppType.navLabel.copyWith(color: colour),
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
                         ),
                       )
                     : const SizedBox.shrink(),
+                ),
               ),
             ],
           ),
