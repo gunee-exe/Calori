@@ -90,28 +90,30 @@ That yields 36 g for a chapati, 25 g for an idli, 208 g for a plate of biryani.
 > explicitly. Matching the first hit would import a 4.184x error wholesale.
 
 ### Still to add
-### Still to add
 
-CNF (Canada) and Frida (Denmark). Both publish behind download pages whose
-direct file URLs have moved since this plan was written and need re-finding.
-The Pakistan FCT is PDF-only and needs extraction.
+**CNF (Canada)** — adapter written and registered; the archive must be fetched
+by hand. `canada.ca` would not serve it to this build (the direct link times
+out, the open.canada.ca mirror returns a redirect page). Save the CSV zip as
+`tools/build_foods_db/.cache/cnf/cnf.zip` and re-run — the build then picks it
+up unattended and reports the same instructions until you do.
+
+CNF is worth the manual step: about 5,690 foods, and its CONVERSION FACTOR
+table maps each food to named household measures, which most national tables do
+not publish at all. Its nutrient values use the legacy SR numbering, the same
+scheme FNDDS uses.
+
+**Frida (Denmark)** — not written. The site has moved: `frida.fooddata.dk` now
+redirects to `fcdb.fooddata.dk`, which does not resolve from this machine, so
+the file's actual shape is unknown. A parser written against a guessed layout
+would look finished and silently produce nothing, which is worse than an empty
+slot; it needs someone who can reach the site to look at one file first.
+
+**Pakistan FCT** — PDF only, so it needs extraction before an adapter is worth
+writing. 210 foods, and the most valuable ones for this app's audience after
+INDB — karahi and haleem currently return nothing.
 
 Each is one file in `tools/build_foods_db/sources/` plus one line in
 `build.py`, so the merge ships with whatever is ready.
-
-**FNDDS is the one that matters most.** Prepared and mixed dishes are what people actually
-photograph and log, and FNDDS carries the richest household-portion data of any source here.
-
-Projected raw union ≈ 29,000 rows once all sources land, collapsing to **~18,000–20,000 unique
-foods** at an estimated **4–6 MB**. Each adapter is an independent file, so the merge ships with
-whatever is ready and gains the rest without any change to the app.
-
-**Honest remaining gaps:** East Asia, Southeast Asia, the Middle East, Latin America, most of
-Africa. FAO/INFOODS publishes regional tables (e.g. WAFCT 2019 for Western Africa, with Excel
-datasheets) — verify FAO's licence terms before pulling any in.
-
-This gap is precisely what the AI photo path exists to cover, and `food_cache` means each user's
-frequent foods converge on correct values whether or not the database ever knew them.
 
 ---
 
