@@ -59,15 +59,32 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
   @override
   Stream<List<LoggedEntry>> watchEntriesForDay(int dayKey) {
-    final entries =
-        (_db.select(_db.entries)
-              ..where((e) => e.dayKey.equals(dayKey))
-              ..orderBy([(e) => OrderingTerm.asc(e.loggedAt)]))
-            .watch();
+    // The trigger declares **both** tables.
+    //
+    // Watching `entries` alone looks right and is not: the items are fetched
+    // in a second query, so Drift is never told this stream depends on
+    // `entry_items`. Editing a portion or removing one item then writes to the
+    // database and re-emits nothing — the ring, the totals and the meal card
+    // all keep showing the old figures until something else happens to touch
+    // `entries`. Changing an entry's meal type appeared to work, which is what
+    // made it look like a UI bug rather than a stale query.
+    final trigger = _db
+        .customSelect(
+          'SELECT id FROM entries WHERE day_key = ? ORDER BY logged_at',
+          variables: [Variable<int>(dayKey)],
+          readsFrom: {_db.entries, _db.entryItems},
+        )
+        .watch();
 
     // Every entry's items in one query, joined in memory. The alternative —
     // a query per entry — turns a ten-meal day into eleven round trips.
-    return entries.asyncMap((rows) async {
+    return trigger.asyncMap((_) async {
+      final rows =
+          await (_db.select(_db.entries)
+                ..where((e) => e.dayKey.equals(dayKey))
+                ..orderBy([(e) => OrderingTerm.asc(e.loggedAt)]))
+              .get();
+
       if (rows.isEmpty) return const <LoggedEntry>[];
 
       final ids = rows.map((e) => e.id).toList();
@@ -204,6 +221,13 @@ class DiaryRepositoryImpl implements DiaryRepository {
         portionDesc:
             portionDesc == null ? const Value.absent() : Value(portionDesc),
       ),
+    );
+  }
+
+  @override
+  Future<void> updateEntryMeal(int entryId, MealType meal) async {
+    await (_db.update(_db.entries)..where((e) => e.id.equals(entryId))).write(
+      EntriesCompanion(mealType: Value(meal)),
     );
   }
 

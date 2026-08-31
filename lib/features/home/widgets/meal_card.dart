@@ -10,6 +10,7 @@ import '../../../core/widgets/calori_card.dart';
 import '../../../core/widgets/section_label.dart';
 import '../../../data/providers.dart';
 import '../../../domain/models/entry.dart';
+import 'entry_sheet.dart';
 import '../../../domain/repositories/diary_repository.dart';
 
 class MealCard extends ConsumerWidget {
@@ -26,7 +27,7 @@ class MealCard extends ConsumerWidget {
       onDismissed: (_) => _delete(context, ref),
       child: CaloriCard(
         padding: const EdgeInsets.all(14),
-        onTap: () => _showItems(context),
+        onTap: () => showEntrySheet(context, entry.id),
         child: Row(
           children: [
             Expanded(
@@ -100,51 +101,6 @@ class MealCard extends ConsumerWidget {
     );
   }
 
-  void _showItems(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionLabel(entry.mealType.label),
-              const SizedBox(height: 14),
-              for (final item in entry.items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.name, style: AppType.body),
-                            const SizedBox(height: 2),
-                            Text(
-                              item.portionDesc ??
-                                  '${formatGrams(item.grams)} g',
-                              style: AppType.secondary,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        '${formatKcal(item.macros.kcal)} kcal',
-                        style: AppType.bodyStrong,
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _DeleteBackground extends StatelessWidget {

@@ -219,6 +219,52 @@ void main() {
       expect(totals.consumed.kcal, closeTo(item.macros.kcal * 2, 0.01));
     });
 
+    test('the day stream re-emits when an item changes', () async {
+      // The bug this guards: watchEntriesForDay watched only the `entries`
+      // table while fetching items in a second query, so Drift was never told
+      // the stream depended on `entry_items`. Editing a portion wrote to the
+      // database and re-emitted nothing — the ring and the totals kept showing
+      // the old figures. Reading the stream fresh each time hid it completely,
+      // which is why every earlier test passed.
+      await log('banana');
+
+      final seen = <int>[];
+      final sub = diary
+          .watchEntriesForDay(dayKey)
+          .listen((entries) => seen.add(entries.first.items.first.id));
+
+      await pumpEventQueue();
+      expect(seen, hasLength(1), reason: 'no initial emission');
+
+      final entries = await diary.watchEntriesForDay(dayKey).first;
+      await diary.updateItem(entries.first.items.first.id, grams: 200);
+      await pumpEventQueue();
+
+      expect(
+        seen.length,
+        greaterThan(1),
+        reason: 'editing an item must re-emit the day',
+      );
+
+      await sub.cancel();
+    });
+
+    test('the day stream re-emits when an item is removed', () async {
+      await log('banana');
+      await log('egg');
+
+      var emissions = 0;
+      final sub = diary.watchEntriesForDay(dayKey).listen((_) => emissions++);
+      await pumpEventQueue();
+
+      final entries = await diary.watchEntriesForDay(dayKey).first;
+      await diary.deleteItem(entries.first.items.first.id);
+      await pumpEventQueue();
+
+      expect(emissions, greaterThan(1));
+      await sub.cancel();
+    });
+
     test('entries land on the day they were logged against', () async {
       await log('banana');
       expect(await diary.watchEntriesForDay(dayKey).first, hasLength(1));

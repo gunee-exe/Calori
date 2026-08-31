@@ -103,6 +103,12 @@ abstract interface class DiaryRepository {
 
   Future<void> deleteItem(int itemId);
 
+  /// Moves an entry to a different meal.
+  ///
+  /// The commonest correction after a portion: food logged at 4pm lands in
+  /// "snack" by default, and sometimes it was lunch.
+  Future<void> updateEntryMeal(int entryId, MealType meal);
+
   /// Removes an entry and its items.
   ///
   /// Does **not** purge `food_cache`: the learned nutrition value stays useful
