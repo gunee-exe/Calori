@@ -92,19 +92,45 @@ void main() {
       expectsBadResponse('{"result": "ok"}', 'wrong shape');
     });
 
-    test('an empty items array', () {
-      // Better a clear failure with a retry than an empty log entry the user
-      // has to notice is empty.
-      expectsBadResponse(payload([]), 'no items');
+    test('JSON that is not an object', () {
+      expectsBadResponse('[1, 2, 3]', 'array at the top level');
+    });
+  });
+
+  group('a photo with no food in it', () {
+    // The bug this group exists for: a photograph of a hand came back as a
+    // 500 kcal entry. The model said it was not food; the app logged it anyway,
+    // because both the Worker and the parser treated "no items" as a failure
+    // and the model — handed a schema demanding an items array — had no
+    // acceptable way to say "nothing here".
+
+    test('an empty items array is an answer, not a failure', () {
+      expect(parseItems(payload([])), isEmpty);
     });
 
-    test('every item unusable', () {
-      expectsBadResponse(
-        payload([
-          {'name': '', 'grams': 100, 'kcal': 200},
-          {'name': 'x', 'grams': 0, 'kcal': 200},
-        ]),
-        'nothing salvageable',
+    test('items that are all unusable come back empty, not as an error', () {
+      expect(
+        parseItems(
+          payload([
+            {'name': '', 'grams': 100, 'kcal': 200},
+            {'name': 'x', 'grams': 0, 'kcal': 200},
+          ]),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('an unreadable reply is still a failure', () {
+      // The two must stay distinguishable: "there is no food here" and "I could
+      // not understand the answer" are different facts, and the UI says
+      // different things about them.
+      expect(
+        () => parseItems('the model went for a walk'),
+        throwsA(isA<VisionException>()),
+      );
+      expect(
+        () => parseItems('{"result": "ok"}'),
+        throwsA(isA<VisionException>()),
       );
     });
   });

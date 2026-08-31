@@ -189,6 +189,11 @@ class VisionService {
 /// without a socket. Tolerant of missing optional fields and intolerant of
 /// missing required ones — a half-parsed item that silently reads as 0 kcal is
 /// worse than a visible failure.
+///
+/// Returns an empty list when the reply is well-formed but contains no food.
+/// That is distinct from [VisionFailure.badResponse], which means the reply
+/// could not be read: "there is no food here" and "I could not understand the
+/// answer" are different facts and the UI says different things about them.
 List<ProposedItem> parseItems(String body) {
   final Map<String, dynamic> decoded;
   try {
@@ -239,7 +244,13 @@ List<ProposedItem> parseItems(String body) {
     );
   }
 
-  if (items.isEmpty) throw const VisionException(VisionFailure.badResponse);
+  // An empty list is a legitimate answer: the photo had no food in it. Only a
+  // reply we could not read at all is a failure.
+  //
+  // These were the same case until a photo of a hand produced "not a food" and
+  // a 500 kcal entry. Both layers treated "no items" as a fault, so the model —
+  // which is given a schema requiring an items array — had no acceptable way to
+  // say "nothing here" and invented something instead.
   return items;
 }
 

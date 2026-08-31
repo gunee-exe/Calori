@@ -54,8 +54,13 @@ class ReviewScreen extends ConsumerWidget {
                       photo: photo,
                       dayKey: dayKey,
                     ),
-                    AsyncData(:final value) when value != null && value.isNotEmpty =>
+                    AsyncData(:final value)
+                        when value != null && value.isNotEmpty =>
                       _Items(items: value, dayKey: dayKey),
+                    // An empty list is an answer, not a blank screen: the photo
+                    // had no food in it.
+                    AsyncData(:final value) when value != null =>
+                      _NoFood(photo: photo, dayKey: dayKey),
                     _ => const SizedBox.shrink(),
                   },
                 ],
@@ -205,6 +210,54 @@ class _Failed extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The model looked and found no food.
+///
+/// Deliberately not an error. The model did its job — it is a photo of a hand,
+/// or a cat, or a blurred table — and saying so is more useful than a made-up
+/// number. Before this existed the app showed a blank screen here, and before
+/// the Worker was allowed to return nothing it invented a food instead: a
+/// photograph of a hand became a 500 kcal entry.
+class _NoFood extends ConsumerWidget {
+  const _NoFood({required this.photo, required this.dayKey});
+
+  final File photo;
+  final int dayKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return CaloriCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('No food in that photo', style: AppType.bodyStrong),
+          const SizedBox(height: 6),
+          Text(
+            'Try again with the meal filling more of the frame, or add it by '
+            'hand.',
+            style: AppType.secondary.copyWith(height: 1.55),
+          ),
+          const SizedBox(height: 16),
+          PillButton(
+            label: 'Try again',
+            onPressed: () =>
+                ref.read(photoAnalysisProvider.notifier).run(photo),
+          ),
+          const SizedBox(height: 10),
+          PillButton(
+            label: 'Add by hand instead',
+            variant: PillVariant.surface,
+            onPressed: () => Navigator.of(context).pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (_) => SearchScreen(dayKey: dayKey),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

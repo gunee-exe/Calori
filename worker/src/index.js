@@ -105,20 +105,25 @@ Rules:
 1. Identify each distinct food. Use the specific dish name when you are
    confident of it, including regional names (biryani, karahi, dosa, pho).
    Do not invent precision: "mixed salad" is better than a wrong specific name.
-2. Estimate the EDIBLE weight in grams. Use visible reference objects — a
+2. IF THE PHOTO CONTAINS NO FOOD, RETURN AN EMPTY items ARRAY. A hand, a pet, a
+   room, a screenshot, a blurred mess — all of these get []. An empty array is
+   a correct and expected answer, not a failure. Never invent a food to fill
+   the array: a number the user cannot tell is wrong is far worse than no
+   number at all, and they can always add the meal by hand.
+3. Estimate the EDIBLE weight in grams. Use visible reference objects — a
    standard dinner plate is 26-28 cm, a teaspoon 5 ml, a mug 300 ml.
-3. ACCOUNT FOR PREPARATION FAT. Oil, ghee and butter absorbed during cooking
+4. ACCOUNT FOR PREPARATION FAT. Oil, ghee and butter absorbed during cooking
    are not visible but carry real calories. A restaurant curry, a stir fry, or
    any fried item carries substantially more fat than its ingredients alone
    suggest. Under-counting this is the most common way an estimate goes wrong.
-4. Set confidence honestly:
+5. Set confidence honestly:
    - high: the food is unambiguous and something in frame gives scale.
    - medium: the food is clear but the portion is a judgement call.
    - low: the dish is ambiguous, hidden, or there is nothing to judge size by.
-5. confidence_reason must be a short, concrete phrase the user can act on,
+6. confidence_reason must be a short, concrete phrase the user can act on,
    such as "no reference object in frame" or "sauce hides the portion size".
    Never leave it empty, and never restate the confidence level itself.
-6. Report each food once. Do not list ingredients of a mixed dish separately.
+7. Report each food once. Do not list ingredients of a mixed dish separately.
 
 Return only the structured object.`;
 
@@ -329,10 +334,11 @@ async function callModel(env, model, imageBase64, hint) {
     return { ok: false, reason: 'content_not_json' };
   }
 
-  const items = sanitise(payload?.items);
-  if (items.length === 0) return { ok: false, reason: 'no_items' };
-
-  return { ok: true, items };
+  // An empty array means "no food in this photo", which is a correct answer and
+  // must be passed through. Returning ok:false here would do two harmful
+  // things: turn it into a 502, and retry the fallback model on a photo that
+  // simply has no food in it.
+  return { ok: true, items: sanitise(payload?.items) };
 }
 
 /**
