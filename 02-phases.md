@@ -205,20 +205,20 @@ the photo path through a deployed Worker returning real estimates.
 | 3 manual logging | done — 26 tests against the real shipped database |
 | 4 home / day view | done |
 | 5 calendar | done |
-| 6 photo path + Worker | **done and verified on a real phone** |
+| 6 photo path + Worker | **done and verified on a real phone**, incl. the viewfinder and UC-04 |
 | 7 goal, sources, a11y | done — 9 accessibility checks |
 
 ### Still open
 
-1. **CNF (Canada) and Frida (Denmark)** — their published file URLs have moved
-   since this plan was written and need re-finding. Pakistan FCT is PDF-only.
-   Each is one file in `tools/build_foods_db/sources/`.
-2. **The capture screen.** The design has a viewfinder with a Gallery button
-   beside the shutter; the app hands off to the system camera instead, so
-   gallery import is currently a long-press on the nav camera button. A faithful
-   version needs the `camera` package.
-3. **The Add food screen keeps the nav bar in the design**; here it is a pushed
-   route with a close button.
+1. **Frida (Denmark)** — `frida.fooddata.dk` now redirects to `fcdb.fooddata.dk`,
+   which does not resolve from this machine. Needs one look at a real file before
+   a parser is worth writing; a guessed one would look finished and silently
+   produce nothing.
+2. **Pakistan FCT** — PDF only, needs extraction. The most valuable of the two
+   for this audience: *karahi* and *haleem* currently return nothing.
+3. **CNF** — adapter written and registered; drop the CSV zip in
+   `tools/build_foods_db/.cache/cnf/cnf.zip` and re-run. canada.ca would not
+   serve it to this build.
 
 ### Bugs the tests and the device caught
 
@@ -237,3 +237,11 @@ Worth keeping, because each one passed review, analysis, and the whole suite:
   all real foods, all failing plausibility rules that were too tight.
 - **Three RenderFlex overflows** on phone-sized viewports, invisible at the
   800x600 default test surface.
+- **A photo of a hand became a 500 kcal entry.** The prompt never permitted "no
+  food" and both the Worker and the parser treated an empty result as a
+  failure, so the model — handed a schema demanding an items array — had no
+  acceptable way to say "nothing here".
+- **The day stream never re-emitted on an item edit.** `watchEntriesForDay`
+  watched only `entries` while fetching items in a second query, so Drift did
+  not know it depended on `entry_items`. Every earlier test passed because they
+  read the stream fresh each time, which hides staleness completely.
