@@ -8,13 +8,17 @@
          INTERNET permission invisible to every test and fatal in production. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- CAMERA is deliberately NOT declared.
-         image_picker launches the system camera via ACTION_IMAGE_CAPTURE, which
-         needs no permission. But if an app *declares* CAMERA, Android then
-         requires it to be granted before that same intent will fire - so
-         "helpfully" adding it here turns a working capture into a permission
-         denial. Likewise READ_MEDIA_IMAGES: the Android 13+ photo picker gives
-         access to the one image the user chose and nothing else. -->
+    <!-- CAMERA is required by the `camera` package's live viewfinder.
+         It was deliberately absent until that landed, and the reason still
+         matters: declaring CAMERA makes Android require it be *granted* before
+         image_picker's ACTION_IMAGE_CAPTURE will fire. So image_picker is
+         gallery-only from here, and must not be pointed at the camera again —
+         the gallery path needs no permission and is what the app falls back to
+         when this one is refused.
+
+         READ_MEDIA_IMAGES is still not declared: the Android 13+ photo picker
+         hands back the one image the user chose and nothing else. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:label="Calori"

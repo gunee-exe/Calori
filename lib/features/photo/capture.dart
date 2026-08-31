@@ -15,41 +15,56 @@ import 'package:image_picker/image_picker.dart';
 
 import '../home/providers.dart';
 import '../shell/providers.dart';
+import 'capture_screen.dart';
 import 'providers.dart';
 import 'review_screen.dart';
 
-/// Opens the camera, then the review screen.
-Future<void> onCapturePressed(BuildContext context, WidgetRef ref) =>
-    _capture(context, ref, ImageSource.camera);
+/// Opens the viewfinder.
+///
+/// The capture screen owns the shutter, the gallery shortcut and the optional
+/// details field, and pushes the review screen itself once a photo exists.
+Future<void> onCapturePressed(BuildContext context, WidgetRef ref) async {
+  if (!ref.read(photoLoggingAvailableProvider)) {
+    _notConfigured(context);
+    return;
+  }
+
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const CaptureScreen()),
+  );
+}
+
+void _notConfigured(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Photo estimates are not set up in this build.'),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
 
 /// Opens the photo library, then the review screen.
-Future<void> onGalleryPressed(BuildContext context, WidgetRef ref) =>
-    _capture(context, ref, ImageSource.gallery);
-
-Future<void> _capture(
-  BuildContext context,
-  WidgetRef ref,
-  ImageSource source,
-) async {
+///
+/// Still `image_picker`, and still needs no permission: the Android 13+ photo
+/// picker returns the one image the user chose. This is also what the capture
+/// screen falls back to when camera permission is refused.
+Future<void> onGalleryPressed(BuildContext context, WidgetRef ref) async {
   final navigator = Navigator.of(context);
   final messenger = ScaffoldMessenger.of(context);
 
   // Without a deployed Worker the photo path cannot work. Say so plainly and
-  // point at the path that always can, rather than opening a camera whose
+  // point at the path that always can, rather than opening a picker whose
   // result has nowhere to go.
   if (!ref.read(photoLoggingAvailableProvider)) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Photo estimates are not set up in this build.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    _notConfigured(context);
     return;
   }
 
   final File? photo;
   try {
-    photo = await ref.read(photoCaptureProvider.notifier).pick(source);
+    photo = await ref
+        .read(photoCaptureProvider.notifier)
+        .pick(ImageSource.gallery);
   } catch (error, stack) {
     // Never fail silently here. The original version let an exception escape
     // into an async gap with no catch, so the camera closed and *nothing

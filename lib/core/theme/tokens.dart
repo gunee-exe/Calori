@@ -37,6 +37,15 @@ abstract final class AppColors {
   /// Hairline borders and dividers.
   static const border = Color(0xFFE9EDF5);
 
+  /// Behind the camera preview, and visible at its edges while it starts.
+  static const viewfinder = Color(0xFFDFE5F0);
+
+  /// Controls that sit over a photo: the close button, Gallery, Add details.
+  ///
+  /// Nearly opaque rather than a translucent scrim, because these must stay
+  /// legible over a preview whose colours are unknown.
+  static const overlaySurface = Color(0xEBFFFFFF);
+
   /// Over-target arcs and the "not logged" calendar dot.
   ///
   /// This token replaces red. If you ever reach for [Colors.red] in this app,
@@ -164,6 +173,9 @@ abstract final class AppLayout {
   /// round add button that sits above the bar on Home. Both are 52.
   static const navCameraSize = 52.0;
 
+  /// The camera shutter: 76 across with a 4px white ring, per the prototype.
+  static const shutterSize = 76.0;
+
   /// Number of discrete pips in the protein bar.
   static const proteinPips = 12;
 }
@@ -216,6 +228,22 @@ abstract final class AppType {
     fontSize: 28,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.28,
+  );
+
+  /// "Add details" on the capture screen.
+  static const overlayLabel = TextStyle(
+    fontFamily: family,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textPrimary,
+  );
+
+  /// "Gallery" on the capture screen.
+  static const overlayAction = TextStyle(
+    fontFamily: family,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textPrimary,
   );
 
   /// The label that appears inside an active nav tab.

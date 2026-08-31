@@ -100,21 +100,42 @@ class PhotoCapture extends _$PhotoCapture {
 
       // Copied out of the OS cache, which Android clears without warning. The
       // file has to survive long enough to retry a failed analysis.
-      final directory = await getApplicationDocumentsDirectory();
-      final photos = Directory(p.join(directory.path, 'photos'));
-      await photos.create(recursive: true);
-
-      final destination = File(
-        p.join(photos.path, '${DateTime.now().millisecondsSinceEpoch}.jpg'),
-      );
-      await File(picked.path).copy(destination.path);
-
+      final destination = await _store(File(picked.path));
       state = AsyncData(destination);
       return destination;
     } catch (error, stack) {
       state = AsyncError(error, stack);
       return null;
     }
+  }
+
+  /// Takes ownership of a file produced elsewhere — the camera's shutter.
+  ///
+  /// `CameraController.takePicture` writes into a cache directory Android is
+  /// free to clear, so the same copy-into-documents step the picker path uses
+  /// applies: the photo has to outlive the cache to survive a retry after a
+  /// failed analysis.
+  Future<File?> adopt(File source) async {
+    state = const AsyncLoading();
+    try {
+      final saved = await _store(source);
+      state = AsyncData(saved);
+      return saved;
+    } catch (error, stack) {
+      state = AsyncError(error, stack);
+      return null;
+    }
+  }
+
+  Future<File> _store(File source) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final photos = Directory(p.join(directory.path, 'photos'));
+    await photos.create(recursive: true);
+
+    final destination = File(
+      p.join(photos.path, '${DateTime.now().millisecondsSinceEpoch}.jpg'),
+    );
+    return source.copy(destination.path);
   }
 
   void clear() => state = const AsyncData(null);

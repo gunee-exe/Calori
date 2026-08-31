@@ -41,6 +41,12 @@ dependencies:
   # is only needed for the custom in-app viewfinder, and its AGP 9 status should
   # be checked at the point it is actually wired up.
   image_picker: ^1.2.3
+
+  # The live viewfinder. Android is backed by camera_android_camerax.
+  #
+  # Adding this means declaring the CAMERA permission, which in turn means
+  # image_picker is gallery-only from here — see the note in AndroidManifest.
+  camera: ^0.12.0+2
   http: ^1.6.0
 
   intl: ^0.20.3
