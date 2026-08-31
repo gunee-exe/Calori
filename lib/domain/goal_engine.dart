@@ -348,6 +348,39 @@ abstract final class GoalEngine {
     );
   }
 
+  /// The macro split for a target the user set by hand.
+  ///
+  /// Exists so the Goal screen can re-derive carbs and fat from an overridden
+  /// calorie or protein figure without restating any of this arithmetic —
+  /// including the reconciliation in [_macros], which it would be easy to
+  /// forget and which is the whole reason that method was fixed.
+  ///
+  /// A hand-set [proteinG] is taken as given. It is not clamped, checked, or
+  /// quietly improved: overruling the engine is the entire point of it, and the
+  /// app has already said what it thinks elsewhere on the card.
+  static ({int protein, int carbs, int fat}) macrosFor({
+    required int kcal,
+    required double weightKg,
+    int? proteinG,
+  }) {
+    if (proteinG == null) return _macros(kcal, weightKg);
+
+    var fatG = math
+        .max(fatEnergyShare * kcal / 9, minFatGPerKg * weightKg)
+        .round();
+
+    if (proteinG * 4 + fatG * 9 > kcal) {
+      final minFatG = (minFatGPerKg * weightKg).round();
+      fatG = math.max(minFatG, ((kcal - proteinG * 4) / 9).floor());
+    }
+
+    return (
+      protein: proteinG,
+      carbs: math.max(0, ((kcal - proteinG * 4 - fatG * 9) / 4).round()),
+      fat: math.max(0, fatG),
+    );
+  }
+
   /// Splits a calorie target into grams of protein, carbs and fat.
   ///
   /// Protein is set first because it is the macro the app makes prominent;

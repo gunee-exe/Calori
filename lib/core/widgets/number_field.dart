@@ -3,7 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/theme/tokens.dart';
+import '../theme/tokens.dart';
 
 /// A large numeric input with its unit alongside.
 ///

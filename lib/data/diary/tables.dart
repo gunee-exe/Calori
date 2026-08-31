@@ -34,6 +34,28 @@ class Profiles extends Table {
   IntColumn get dailyCarbsG => integer()();
   IntColumn get dailyFatG => integer()();
 
+  /// What the user set by hand, overriding the goal engine. Null means "follow
+  /// the engine", which is every profile until someone says otherwise.
+  ///
+  /// Kept *beside* the computed targets rather than replacing them, so the
+  /// engine's opinion survives and the override can be reverted. The engine is
+  /// still run on every edit; these decide what is shown and logged against.
+  ///
+  /// There is no safety clamp here on purpose. The app may say what it thinks
+  /// — and does, under the number — but the person eating the food is the one
+  /// who decides.
+  IntColumn get kcalOverride => integer().nullable()();
+  IntColumn get proteinOverrideG => integer().nullable()();
+
+  /// Whether to show heights in feet and inches and weights in pounds.
+  ///
+  /// A display preference only: [heightCm] and [weightKg] are always metric, so
+  /// nothing downstream of this column knows it exists. Stored on the profile
+  /// rather than in preferences because it is answered during onboarding and
+  /// must already be right the first time the Goal screen is opened.
+  BoolColumn get usesImperial =>
+      boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get updatedAt => dateTime()();
 }
 

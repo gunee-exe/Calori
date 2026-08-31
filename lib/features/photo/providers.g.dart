@@ -105,16 +105,37 @@ final class DeviceIdProvider extends $FunctionalProvider<String, String, String>
 String _$deviceIdHash() => r'e58205a814b084d0d2aa5495e2b583b418100b59';
 
 /// Whether the photo path can be offered at all.
+///
+/// The secret is checked, not just the endpoint. Now that the endpoint carries
+/// a default its presence proves nothing about the build, while the secret is
+/// exactly what a build has or has not been given — and without it the Worker
+/// rejects every request. Testing it here is what keeps a plain
+/// `flutter build apk` honest: the button explains itself instead of sending a
+/// request that is certain to come back 401.
 
 @ProviderFor(photoLoggingAvailable)
 final photoLoggingAvailableProvider = PhotoLoggingAvailableProvider._();
 
 /// Whether the photo path can be offered at all.
+///
+/// The secret is checked, not just the endpoint. Now that the endpoint carries
+/// a default its presence proves nothing about the build, while the secret is
+/// exactly what a build has or has not been given — and without it the Worker
+/// rejects every request. Testing it here is what keeps a plain
+/// `flutter build apk` honest: the button explains itself instead of sending a
+/// request that is certain to come back 401.
 
 final class PhotoLoggingAvailableProvider
     extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   /// Whether the photo path can be offered at all.
+  ///
+  /// The secret is checked, not just the endpoint. Now that the endpoint carries
+  /// a default its presence proves nothing about the build, while the secret is
+  /// exactly what a build has or has not been given — and without it the Worker
+  /// rejects every request. Testing it here is what keeps a plain
+  /// `flutter build apk` honest: the button explains itself instead of sending a
+  /// request that is certain to come back 401.
   PhotoLoggingAvailableProvider._()
     : super(
         from: null,
@@ -149,7 +170,7 @@ final class PhotoLoggingAvailableProvider
 }
 
 String _$photoLoggingAvailableHash() =>
-    r'b2d361f3e215785ced1f27062bf84269b1839761';
+    r'e82504226157da3eb8dba54b84665fe8b76726a7';
 
 /// Picks a photo and downscales it.
 ///
@@ -215,7 +236,7 @@ final class PhotoCaptureProvider
   PhotoCapture create() => PhotoCapture();
 }
 
-String _$photoCaptureHash() => r'97a68296207b89adb30e6574dde1c04359ad0585';
+String _$photoCaptureHash() => r'3efc8693e030bb9f771b6effd19a52d054315314';
 
 /// Picks a photo and downscales it.
 ///

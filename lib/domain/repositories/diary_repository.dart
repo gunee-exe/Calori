@@ -49,6 +49,9 @@ class UserProfile {
     required this.dailyCarbsG,
     required this.dailyFatG,
     this.targetDate,
+    this.kcalOverride,
+    this.proteinOverrideG,
+    this.usesImperial = false,
   });
 
   final Sex sex;
@@ -64,6 +67,22 @@ class UserProfile {
   final int dailyFatG;
 
   final DateTime? targetDate;
+
+  /// The goals the user set by hand, or null to follow the engine.
+  ///
+  /// When one is set it is also **mirrored into [dailyKcal] / [dailyProteinG]**,
+  /// so everything that reads a daily target — the ring, the day totals, the
+  /// calendar — stays correct without knowing overrides exist. These fields
+  /// exist so the Goal screen can tell a hand-set number from a computed one,
+  /// show what the engine would have said, and offer to revert.
+  final int? kcalOverride;
+  final int? proteinOverrideG;
+
+  /// Show feet and inches, and pounds. Display only — the stored height and
+  /// weight are always metric.
+  final bool usesImperial;
+
+  bool get hasManualGoals => kcalOverride != null || proteinOverrideG != null;
 }
 
 abstract interface class DiaryRepository {

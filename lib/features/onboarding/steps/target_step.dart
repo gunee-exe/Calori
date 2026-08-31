@@ -18,7 +18,8 @@ import '../../../domain/goal_result.dart';
 import '../../../domain/models/enums.dart';
 import '../onboarding_screen.dart';
 import '../providers.dart';
-import 'widgets/number_field.dart';
+import '../../../core/units.dart';
+import '../../../core/widgets/number_field.dart';
 
 class TargetStep extends ConsumerStatefulWidget {
   const TargetStep({super.key});
@@ -36,17 +37,31 @@ class _TargetStepState extends ConsumerState<TargetStep> {
   /// keyboard waits.
   Timer? _settle;
 
-  late final _target = TextEditingController(
-    text: _initial(
-      ref.read(onboardingProvider).targetWeightKg ??
-          ref.read(onboardingProvider).weightKg,
-    ),
-  );
+  late final _target = TextEditingController(text: _initial(_seed()));
 
   static String _initial(double? value) =>
       value == null ? '' : (value % 1 == 0 ? value.toInt() : value).toString();
 
-  double? get _value => double.tryParse(_target.text.replaceAll(',', '.'));
+  /// The value to start from, in whatever units the answers are being given in.
+  double? _seed() {
+    final draft = ref.read(onboardingProvider);
+    final kg = draft.targetWeightKg ?? draft.weightKg;
+    if (kg == null) return null;
+    return draft.usesImperial ? kgToPounds(kg).roundToDouble() : kg;
+  }
+
+  /// Read rather than watched: this step has no unit toggle of its own, so the
+  /// preference cannot change underneath it, and [_value] is also called from
+  /// `initState` where watching would throw.
+  bool get _imperial => ref.read(onboardingProvider).usesImperial;
+
+  /// Always kilograms, whatever is on screen. The bounds check, the draft and
+  /// the engine all work in one unit; only the field converts.
+  double? get _value {
+    final typed = double.tryParse(_target.text.replaceAll(',', '.'));
+    if (typed == null) return null;
+    return _imperial ? poundsToKg(typed) : typed;
+  }
 
   @override
   void initState() {
@@ -109,7 +124,7 @@ class _TargetStepState extends ConsumerState<TargetStep> {
           NumberField(
             controller: _target,
             label: 'Target weight',
-            suffix: 'kg',
+            suffix: _imperial ? 'lb' : 'kg',
             autofocus: true,
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),

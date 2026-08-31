@@ -136,6 +136,43 @@ class $ProfilesTable extends Profiles with TableInfo<$ProfilesTable, Profile> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kcalOverrideMeta = const VerificationMeta(
+    'kcalOverride',
+  );
+  @override
+  late final GeneratedColumn<int> kcalOverride = GeneratedColumn<int>(
+    'kcal_override',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _proteinOverrideGMeta = const VerificationMeta(
+    'proteinOverrideG',
+  );
+  @override
+  late final GeneratedColumn<int> proteinOverrideG = GeneratedColumn<int>(
+    'protein_override_g',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _usesImperialMeta = const VerificationMeta(
+    'usesImperial',
+  );
+  @override
+  late final GeneratedColumn<bool> usesImperial = GeneratedColumn<bool>(
+    'uses_imperial',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("uses_imperial" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -161,6 +198,9 @@ class $ProfilesTable extends Profiles with TableInfo<$ProfilesTable, Profile> {
     dailyProteinG,
     dailyCarbsG,
     dailyFatG,
+    kcalOverride,
+    proteinOverrideG,
+    usesImperial,
     updatedAt,
   ];
   @override
@@ -257,6 +297,33 @@ class $ProfilesTable extends Profiles with TableInfo<$ProfilesTable, Profile> {
     } else if (isInserting) {
       context.missing(_dailyFatGMeta);
     }
+    if (data.containsKey('kcal_override')) {
+      context.handle(
+        _kcalOverrideMeta,
+        kcalOverride.isAcceptableOrUnknown(
+          data['kcal_override']!,
+          _kcalOverrideMeta,
+        ),
+      );
+    }
+    if (data.containsKey('protein_override_g')) {
+      context.handle(
+        _proteinOverrideGMeta,
+        proteinOverrideG.isAcceptableOrUnknown(
+          data['protein_override_g']!,
+          _proteinOverrideGMeta,
+        ),
+      );
+    }
+    if (data.containsKey('uses_imperial')) {
+      context.handle(
+        _usesImperialMeta,
+        usesImperial.isAcceptableOrUnknown(
+          data['uses_imperial']!,
+          _usesImperialMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -326,6 +393,18 @@ class $ProfilesTable extends Profiles with TableInfo<$ProfilesTable, Profile> {
         DriftSqlType.int,
         data['${effectivePrefix}daily_fat_g'],
       )!,
+      kcalOverride: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}kcal_override'],
+      ),
+      proteinOverrideG: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}protein_override_g'],
+      ),
+      usesImperial: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}uses_imperial'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -362,6 +441,27 @@ class Profile extends DataClass implements Insertable<Profile> {
   final int dailyProteinG;
   final int dailyCarbsG;
   final int dailyFatG;
+
+  /// What the user set by hand, overriding the goal engine. Null means "follow
+  /// the engine", which is every profile until someone says otherwise.
+  ///
+  /// Kept *beside* the computed targets rather than replacing them, so the
+  /// engine's opinion survives and the override can be reverted. The engine is
+  /// still run on every edit; these decide what is shown and logged against.
+  ///
+  /// There is no safety clamp here on purpose. The app may say what it thinks
+  /// — and does, under the number — but the person eating the food is the one
+  /// who decides.
+  final int? kcalOverride;
+  final int? proteinOverrideG;
+
+  /// Whether to show heights in feet and inches and weights in pounds.
+  ///
+  /// A display preference only: [heightCm] and [weightKg] are always metric, so
+  /// nothing downstream of this column knows it exists. Stored on the profile
+  /// rather than in preferences because it is answered during onboarding and
+  /// must already be right the first time the Goal screen is opened.
+  final bool usesImperial;
   final DateTime updatedAt;
   const Profile({
     required this.id,
@@ -376,6 +476,9 @@ class Profile extends DataClass implements Insertable<Profile> {
     required this.dailyProteinG,
     required this.dailyCarbsG,
     required this.dailyFatG,
+    this.kcalOverride,
+    this.proteinOverrideG,
+    required this.usesImperial,
     required this.updatedAt,
   });
   @override
@@ -401,6 +504,13 @@ class Profile extends DataClass implements Insertable<Profile> {
     map['daily_protein_g'] = Variable<int>(dailyProteinG);
     map['daily_carbs_g'] = Variable<int>(dailyCarbsG);
     map['daily_fat_g'] = Variable<int>(dailyFatG);
+    if (!nullToAbsent || kcalOverride != null) {
+      map['kcal_override'] = Variable<int>(kcalOverride);
+    }
+    if (!nullToAbsent || proteinOverrideG != null) {
+      map['protein_override_g'] = Variable<int>(proteinOverrideG);
+    }
+    map['uses_imperial'] = Variable<bool>(usesImperial);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -421,6 +531,13 @@ class Profile extends DataClass implements Insertable<Profile> {
       dailyProteinG: Value(dailyProteinG),
       dailyCarbsG: Value(dailyCarbsG),
       dailyFatG: Value(dailyFatG),
+      kcalOverride: kcalOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kcalOverride),
+      proteinOverrideG: proteinOverrideG == null && nullToAbsent
+          ? const Value.absent()
+          : Value(proteinOverrideG),
+      usesImperial: Value(usesImperial),
       updatedAt: Value(updatedAt),
     );
   }
@@ -447,6 +564,9 @@ class Profile extends DataClass implements Insertable<Profile> {
       dailyProteinG: serializer.fromJson<int>(json['dailyProteinG']),
       dailyCarbsG: serializer.fromJson<int>(json['dailyCarbsG']),
       dailyFatG: serializer.fromJson<int>(json['dailyFatG']),
+      kcalOverride: serializer.fromJson<int?>(json['kcalOverride']),
+      proteinOverrideG: serializer.fromJson<int?>(json['proteinOverrideG']),
+      usesImperial: serializer.fromJson<bool>(json['usesImperial']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -470,6 +590,9 @@ class Profile extends DataClass implements Insertable<Profile> {
       'dailyProteinG': serializer.toJson<int>(dailyProteinG),
       'dailyCarbsG': serializer.toJson<int>(dailyCarbsG),
       'dailyFatG': serializer.toJson<int>(dailyFatG),
+      'kcalOverride': serializer.toJson<int?>(kcalOverride),
+      'proteinOverrideG': serializer.toJson<int?>(proteinOverrideG),
+      'usesImperial': serializer.toJson<bool>(usesImperial),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -487,6 +610,9 @@ class Profile extends DataClass implements Insertable<Profile> {
     int? dailyProteinG,
     int? dailyCarbsG,
     int? dailyFatG,
+    Value<int?> kcalOverride = const Value.absent(),
+    Value<int?> proteinOverrideG = const Value.absent(),
+    bool? usesImperial,
     DateTime? updatedAt,
   }) => Profile(
     id: id ?? this.id,
@@ -501,6 +627,11 @@ class Profile extends DataClass implements Insertable<Profile> {
     dailyProteinG: dailyProteinG ?? this.dailyProteinG,
     dailyCarbsG: dailyCarbsG ?? this.dailyCarbsG,
     dailyFatG: dailyFatG ?? this.dailyFatG,
+    kcalOverride: kcalOverride.present ? kcalOverride.value : this.kcalOverride,
+    proteinOverrideG: proteinOverrideG.present
+        ? proteinOverrideG.value
+        : this.proteinOverrideG,
+    usesImperial: usesImperial ?? this.usesImperial,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   Profile copyWithCompanion(ProfilesCompanion data) {
@@ -527,6 +658,15 @@ class Profile extends DataClass implements Insertable<Profile> {
           ? data.dailyCarbsG.value
           : this.dailyCarbsG,
       dailyFatG: data.dailyFatG.present ? data.dailyFatG.value : this.dailyFatG,
+      kcalOverride: data.kcalOverride.present
+          ? data.kcalOverride.value
+          : this.kcalOverride,
+      proteinOverrideG: data.proteinOverrideG.present
+          ? data.proteinOverrideG.value
+          : this.proteinOverrideG,
+      usesImperial: data.usesImperial.present
+          ? data.usesImperial.value
+          : this.usesImperial,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -546,6 +686,9 @@ class Profile extends DataClass implements Insertable<Profile> {
           ..write('dailyProteinG: $dailyProteinG, ')
           ..write('dailyCarbsG: $dailyCarbsG, ')
           ..write('dailyFatG: $dailyFatG, ')
+          ..write('kcalOverride: $kcalOverride, ')
+          ..write('proteinOverrideG: $proteinOverrideG, ')
+          ..write('usesImperial: $usesImperial, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -565,6 +708,9 @@ class Profile extends DataClass implements Insertable<Profile> {
     dailyProteinG,
     dailyCarbsG,
     dailyFatG,
+    kcalOverride,
+    proteinOverrideG,
+    usesImperial,
     updatedAt,
   );
   @override
@@ -583,6 +729,9 @@ class Profile extends DataClass implements Insertable<Profile> {
           other.dailyProteinG == this.dailyProteinG &&
           other.dailyCarbsG == this.dailyCarbsG &&
           other.dailyFatG == this.dailyFatG &&
+          other.kcalOverride == this.kcalOverride &&
+          other.proteinOverrideG == this.proteinOverrideG &&
+          other.usesImperial == this.usesImperial &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -599,6 +748,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
   final Value<int> dailyProteinG;
   final Value<int> dailyCarbsG;
   final Value<int> dailyFatG;
+  final Value<int?> kcalOverride;
+  final Value<int?> proteinOverrideG;
+  final Value<bool> usesImperial;
   final Value<DateTime> updatedAt;
   const ProfilesCompanion({
     this.id = const Value.absent(),
@@ -613,6 +765,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
     this.dailyProteinG = const Value.absent(),
     this.dailyCarbsG = const Value.absent(),
     this.dailyFatG = const Value.absent(),
+    this.kcalOverride = const Value.absent(),
+    this.proteinOverrideG = const Value.absent(),
+    this.usesImperial = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   ProfilesCompanion.insert({
@@ -628,6 +783,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
     required int dailyProteinG,
     required int dailyCarbsG,
     required int dailyFatG,
+    this.kcalOverride = const Value.absent(),
+    this.proteinOverrideG = const Value.absent(),
+    this.usesImperial = const Value.absent(),
     required DateTime updatedAt,
   }) : sex = Value(sex),
        age = Value(age),
@@ -653,6 +811,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
     Expression<int>? dailyProteinG,
     Expression<int>? dailyCarbsG,
     Expression<int>? dailyFatG,
+    Expression<int>? kcalOverride,
+    Expression<int>? proteinOverrideG,
+    Expression<bool>? usesImperial,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -668,6 +829,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
       if (dailyProteinG != null) 'daily_protein_g': dailyProteinG,
       if (dailyCarbsG != null) 'daily_carbs_g': dailyCarbsG,
       if (dailyFatG != null) 'daily_fat_g': dailyFatG,
+      if (kcalOverride != null) 'kcal_override': kcalOverride,
+      if (proteinOverrideG != null) 'protein_override_g': proteinOverrideG,
+      if (usesImperial != null) 'uses_imperial': usesImperial,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -685,6 +849,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
     Value<int>? dailyProteinG,
     Value<int>? dailyCarbsG,
     Value<int>? dailyFatG,
+    Value<int?>? kcalOverride,
+    Value<int?>? proteinOverrideG,
+    Value<bool>? usesImperial,
     Value<DateTime>? updatedAt,
   }) {
     return ProfilesCompanion(
@@ -700,6 +867,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
       dailyProteinG: dailyProteinG ?? this.dailyProteinG,
       dailyCarbsG: dailyCarbsG ?? this.dailyCarbsG,
       dailyFatG: dailyFatG ?? this.dailyFatG,
+      kcalOverride: kcalOverride ?? this.kcalOverride,
+      proteinOverrideG: proteinOverrideG ?? this.proteinOverrideG,
+      usesImperial: usesImperial ?? this.usesImperial,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -747,6 +917,15 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
     if (dailyFatG.present) {
       map['daily_fat_g'] = Variable<int>(dailyFatG.value);
     }
+    if (kcalOverride.present) {
+      map['kcal_override'] = Variable<int>(kcalOverride.value);
+    }
+    if (proteinOverrideG.present) {
+      map['protein_override_g'] = Variable<int>(proteinOverrideG.value);
+    }
+    if (usesImperial.present) {
+      map['uses_imperial'] = Variable<bool>(usesImperial.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -768,6 +947,9 @@ class ProfilesCompanion extends UpdateCompanion<Profile> {
           ..write('dailyProteinG: $dailyProteinG, ')
           ..write('dailyCarbsG: $dailyCarbsG, ')
           ..write('dailyFatG: $dailyFatG, ')
+          ..write('kcalOverride: $kcalOverride, ')
+          ..write('proteinOverrideG: $proteinOverrideG, ')
+          ..write('usesImperial: $usesImperial, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -2598,6 +2780,9 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   required int dailyProteinG,
   required int dailyCarbsG,
   required int dailyFatG,
+  Value<int?> kcalOverride,
+  Value<int?> proteinOverrideG,
+  Value<bool> usesImperial,
   required DateTime updatedAt,
 });
 typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
@@ -2613,6 +2798,9 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<int> dailyProteinG,
   Value<int> dailyCarbsG,
   Value<int> dailyFatG,
+  Value<int?> kcalOverride,
+  Value<int?> proteinOverrideG,
+  Value<bool> usesImperial,
   Value<DateTime> updatedAt,
 });
 
@@ -2684,6 +2872,21 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<int> get dailyFatG => $composableBuilder(
     column: $table.dailyFatG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get kcalOverride => $composableBuilder(
+    column: $table.kcalOverride,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get proteinOverrideG => $composableBuilder(
+    column: $table.proteinOverrideG,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get usesImperial => $composableBuilder(
+    column: $table.usesImperial,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2762,6 +2965,21 @@ class $$ProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get kcalOverride => $composableBuilder(
+    column: $table.kcalOverride,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get proteinOverrideG => $composableBuilder(
+    column: $table.proteinOverrideG,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get usesImperial => $composableBuilder(
+    column: $table.usesImperial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2824,6 +3042,21 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<int> get dailyFatG =>
       $composableBuilder(column: $table.dailyFatG, builder: (column) => column);
 
+  GeneratedColumn<int> get kcalOverride => $composableBuilder(
+    column: $table.kcalOverride,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get proteinOverrideG => $composableBuilder(
+    column: $table.proteinOverrideG,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get usesImperial => $composableBuilder(
+    column: $table.usesImperial,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -2868,6 +3101,9 @@ class $$ProfilesTableTableManager
                 Value<int> dailyProteinG = const Value.absent(),
                 Value<int> dailyCarbsG = const Value.absent(),
                 Value<int> dailyFatG = const Value.absent(),
+                Value<int?> kcalOverride = const Value.absent(),
+                Value<int?> proteinOverrideG = const Value.absent(),
+                Value<bool> usesImperial = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => ProfilesCompanion(
                 id: id,
@@ -2882,6 +3118,9 @@ class $$ProfilesTableTableManager
                 dailyProteinG: dailyProteinG,
                 dailyCarbsG: dailyCarbsG,
                 dailyFatG: dailyFatG,
+                kcalOverride: kcalOverride,
+                proteinOverrideG: proteinOverrideG,
+                usesImperial: usesImperial,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -2898,6 +3137,9 @@ class $$ProfilesTableTableManager
                 required int dailyProteinG,
                 required int dailyCarbsG,
                 required int dailyFatG,
+                Value<int?> kcalOverride = const Value.absent(),
+                Value<int?> proteinOverrideG = const Value.absent(),
+                Value<bool> usesImperial = const Value.absent(),
                 required DateTime updatedAt,
               }) => ProfilesCompanion.insert(
                 id: id,
@@ -2912,6 +3154,9 @@ class $$ProfilesTableTableManager
                 dailyProteinG: dailyProteinG,
                 dailyCarbsG: dailyCarbsG,
                 dailyFatG: dailyFatG,
+                kcalOverride: kcalOverride,
+                proteinOverrideG: proteinOverrideG,
+                usesImperial: usesImperial,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0

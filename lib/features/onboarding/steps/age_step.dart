@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../onboarding_screen.dart';
 import '../providers.dart';
-import 'widgets/number_field.dart';
+import '../../../core/widgets/number_field.dart';
 
 class AgeStep extends ConsumerStatefulWidget {
   const AgeStep({super.key});

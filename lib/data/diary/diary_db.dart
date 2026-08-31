@@ -30,10 +30,21 @@ class DiaryDb extends _$DiaryDb {
   DiaryDb.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // v1 -> v2: hand-set calorie and protein goals, and the imperial display
+      // preference. All three are additive and all three have a meaning for
+      // rows that predate them — null is "follow the engine", false is metric —
+      // so an existing diary needs nothing but the columns.
+      if (from < 2) {
+        await m.addColumn(profiles, profiles.kcalOverride);
+        await m.addColumn(profiles, profiles.proteinOverrideG);
+        await m.addColumn(profiles, profiles.usesImperial);
+      }
+    },
     onCreate: (m) async {
       await m.createAll();
       // The calendar reads a whole month at a time and the day view reads a
