@@ -198,7 +198,7 @@ class _AddButton extends ConsumerWidget {
         button: true,
         label: 'Add food manually',
         child: GestureDetector(
-          onTap: () => onAddFoodPressed(context, ref),
+          onTap: () => onAddFoodPressed(ref),
           child: Container(
             width: AppLayout.navCameraSize,
             height: AppLayout.navCameraSize,

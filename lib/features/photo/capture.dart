@@ -14,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../home/providers.dart';
-import '../search/search_screen.dart';
+import '../shell/providers.dart';
 import 'providers.dart';
 import 'review_screen.dart';
 
@@ -105,10 +105,10 @@ Future<void> _capture(
 /// This is what the `+` button on Home does. It goes straight to Add food
 /// rather than offering a menu: manual entry is a first-class path, not one
 /// option among several.
-Future<void> onAddFoodPressed(BuildContext context, WidgetRef ref) {
-  return Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => SearchScreen(dayKey: ref.read(selectedDayProvider)),
-    ),
-  );
+///
+/// A shell destination rather than a pushed route, so the nav bar stays
+/// visible — which is what the prototype does, and what lets someone abandon a
+/// search with one tap on Home instead of a back gesture.
+void onAddFoodPressed(WidgetRef ref) {
+  ref.read(shellScreenControllerProvider.notifier).go(ShellScreen.search);
 }

@@ -18,6 +18,7 @@ import '../../core/theme/tokens.dart';
 import '../calendar/calendar_screen.dart';
 import '../goal/goal_screen.dart';
 import '../photo/capture.dart';
+import '../search/search_screen.dart';
 import '../home/home_screen.dart';
 import 'providers.dart';
 
@@ -39,7 +40,12 @@ class AppShell extends ConsumerWidget {
             // screen's scroll position and providers alive, so returning to
             // Home does not re-run the ring's entry animation.
             index: screen.index,
-            children: const [HomeScreen(), CalendarScreen(), GoalScreen()],
+            children: const [
+              HomeScreen(),
+              CalendarScreen(),
+              SearchScreen(),
+              GoalScreen(),
+            ],
           ),
           const Positioned(
             left: 16,

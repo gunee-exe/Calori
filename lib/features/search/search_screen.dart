@@ -13,13 +13,17 @@ import '../../core/widgets/pill_button.dart';
 import '../../core/widgets/section_label.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/food.dart';
+import '../home/providers.dart';
 import 'providers.dart';
 import 'widgets/food_result_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key, required this.dayKey, this.mealType});
+  const SearchScreen({super.key, this.dayKey, this.mealType});
 
-  final int dayKey;
+  /// The day to log against. Null when this is the shell's search destination,
+  /// which follows whatever day Home is showing; set only when pushed as a
+  /// route, as the photo review screen does for "add something it missed".
+  final int? dayKey;
 
   /// Preselected when arriving from a specific meal. Null means the screen
   /// picks a sensible default from the time of day.
@@ -45,18 +49,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final query = ref.watch(searchQueryProvider);
     final results = ref.watch(searchResultsProvider);
 
+    final int dayKey = widget.dayKey ?? ref.watch(selectedDayProvider);
+
+    // Pushed as a route it needs its own way out; as the shell's destination
+    // the nav bar is the way out, and a close button beside it would be two
+    // controls doing one job.
+    final pushed = widget.dayKey != null;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: ListView(
-          padding: AppLayout.screenPadding,
+          // Clears the floating nav bar when this is the shell's destination.
+          padding: AppLayout.screenPadding.add(
+            const EdgeInsets.only(bottom: AppLayout.navClearance),
+          ),
           children: [
             Row(
               children: [
                 const Expanded(
                   child: Text('Add food', style: AppType.screenTitle),
                 ),
-                _CloseButton(onTap: () => Navigator.of(context).pop()),
+                if (pushed)
+                  _CloseButton(onTap: () => Navigator.of(context).pop()),
               ],
             ),
             const SizedBox(height: 16),
@@ -71,7 +86,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _Results(
               results: results,
               query: query,
-              dayKey: widget.dayKey,
+              dayKey: dayKey,
               mealType: widget.mealType,
             ),
           ],

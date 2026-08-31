@@ -7,10 +7,12 @@ part 'providers.g.dart';
 
 /// The shell's destinations.
 ///
-/// Calendar is a member even though it has no nav tab: it is a destination
-/// within the shell rather than a pushed route, so the nav bar stays put and
-/// returning to Home is one tap rather than a system back gesture.
-enum ShellScreen { home, calendar, goal }
+/// Calendar and search are members even though neither has a nav tab: both are
+/// destinations within the shell rather than pushed routes, so the nav bar
+/// stays put and returning to Home is one tap rather than a system back
+/// gesture. The prototype does the same — its `showNav` covers home, search,
+/// calendar and goal alike.
+enum ShellScreen { home, calendar, search, goal }
 
 /// Kept alive so switching tabs and coming back does not reset the shell.
 ///

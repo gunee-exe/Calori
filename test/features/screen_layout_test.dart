@@ -19,6 +19,7 @@ import 'package:calori/domain/repositories/diary_repository.dart';
 import 'package:calori/features/calendar/calendar_screen.dart';
 import 'package:calori/features/goal/goal_screen.dart';
 import 'package:calori/features/home/home_screen.dart';
+import 'package:calori/features/search/search_screen.dart';
 import 'package:calori/features/shell/app_shell.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -95,6 +96,11 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('Add food on $name', (tester) async {
+        await pumpAt(tester, const SearchScreen(), size);
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('the whole shell on $name', (tester) async {
         await pumpAt(tester, const AppShell(), size);
         expect(tester.takeException(), isNull);
@@ -120,6 +126,28 @@ void main() {
       // Home is active by default, so "Goal" is an icon only until selected.
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Goal'), findsNothing);
+    });
+  });
+
+  group('Add food', () {
+    testWidgets('is a destination, so it carries no close button', (
+      tester,
+    ) async {
+      await pumpAt(tester, const SearchScreen(), phone);
+
+      // The nav bar is the way out. A close button beside it would be two
+      // controls doing one job.
+      expect(find.text('Add food'), findsOneWidget);
+      expect(find.byIcon(Icons.close), findsNothing);
+    });
+
+    testWidgets('keeps its close button when pushed as a route', (
+      tester,
+    ) async {
+      // The photo review screen pushes it for "add something it missed", and
+      // there the only way back is its own control.
+      await pumpAt(tester, const SearchScreen(dayKey: 20260830), phone);
+      expect(find.byIcon(Icons.close), findsOneWidget);
     });
   });
 
