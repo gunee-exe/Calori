@@ -16,11 +16,26 @@ import '../../domain/models/enums.dart';
 
 part 'providers.g.dart';
 
-/// The Worker endpoint, supplied at build time.
+/// The deployed Worker.
 ///
-/// Empty in a build without a deployed Worker, which is a normal state — the
-/// camera button is then simply not offered, rather than offered and broken.
-const kWorkerEndpoint = String.fromEnvironment('CALORI_WORKER_URL');
+/// The **endpoint** carries a default so it need not be repeated on every
+/// build. It is a public HTTPS URL and reveals nothing: the OpenRouter key
+/// lives in the Worker's KV and never enters the app.
+///
+/// The **secret deliberately has no default.** It is a live credential, and a
+/// default would commit it to git — which is exactly what `worker-config.json`
+/// being gitignored exists to prevent. That it also ships inside every APK is
+/// not a reason to put it in the repository as well; one exposure is not an
+/// argument for a second, wider, permanent one.
+///
+/// So `flutter build apk` on its own produces an APK with the photo path
+/// switched off, and a build meant for a phone needs
+/// `--dart-define-from-file=worker-config.json`. [photoLoggingAvailable] makes
+/// the app say which, rather than failing at the network.
+const kWorkerEndpoint = String.fromEnvironment(
+  'CALORI_WORKER_URL',
+  defaultValue: 'https://calori-worker.gunee-exe-whispr.workers.dev/analyze',
+);
 const kWorkerSecret = String.fromEnvironment('CALORI_WORKER_SECRET');
 
 /// The longest edge the app uploads, and the JPEG quality.
@@ -58,9 +73,16 @@ String deviceId(Ref ref) {
 String? _installId;
 
 /// Whether the photo path can be offered at all.
+///
+/// The secret is checked, not just the endpoint. Now that the endpoint carries
+/// a default its presence proves nothing about the build, while the secret is
+/// exactly what a build has or has not been given — and without it the Worker
+/// rejects every request. Testing it here is what keeps a plain
+/// `flutter build apk` honest: the button explains itself instead of sending a
+/// request that is certain to come back 401.
 @riverpod
 bool photoLoggingAvailable(Ref ref) =>
-    ref.watch(visionServiceProvider).isConfigured;
+    ref.watch(visionServiceProvider).isConfigured && kWorkerSecret.isNotEmpty;
 
 /// Picks a photo and downscales it.
 ///

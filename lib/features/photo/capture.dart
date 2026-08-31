@@ -37,7 +37,12 @@ Future<void> onCapturePressed(BuildContext context, WidgetRef ref) async {
 void _notConfigured(BuildContext context) {
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
-      content: Text('Photo estimates are not set up in this build.'),
+      // Names the missing piece. "Not set up in this build" was true and
+      // useless — it read as a bug rather than as a forgotten build flag.
+      content: Text(
+        'Photo estimates need a build made with '
+        '--dart-define-from-file=worker-config.json. You can add food by hand.',
+      ),
       behavior: SnackBarBehavior.floating,
     ),
   );
