@@ -179,6 +179,12 @@ class _NavTab extends StatelessWidget {
 /// Lifted 12px out of the bar so it reads as the primary action rather than a
 /// third tab. It opens the camera directly — one tap from anywhere to a photo,
 /// which is the point of putting it here.
+///
+/// Long-press picks from the photo library instead. That is a stopgap: the
+/// design's capture screen has a proper Gallery button beside the shutter, but
+/// that needs a real viewfinder — the `camera` package — rather than handing
+/// off to the system camera as this does. Until then a long-press keeps the
+/// path reachable without inventing a control the design does not have.
 class CameraButton extends ConsumerWidget {
   const CameraButton({super.key});
 
@@ -189,8 +195,10 @@ class CameraButton extends ConsumerWidget {
       child: Semantics(
         button: true,
         label: 'Take a photo of your food',
+        hint: 'Long press to choose an existing photo',
         child: GestureDetector(
           onTap: () => onCapturePressed(context, ref),
+          onLongPress: () => onGalleryPressed(context, ref),
           behavior: HitTestBehavior.opaque,
           child: Container(
             width: AppLayout.navCameraSize,

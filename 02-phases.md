@@ -189,43 +189,51 @@ fixing a bad schema after Phase 4 means touching every screen.
 
 ## Build status
 
-All phases are implemented. 159 tests passing, `flutter analyze` clean, release
-APK builds.
+Every phase is implemented and the app works end to end on a real device:
+onboarding, manual logging against 17,794 foods, the calendar, the goal, and
+the photo path through a deployed Worker returning real estimates.
 
-| Phase | State | Notes |
-|---|---|---|
-| 0 toolchain, rename, Android | done | INTERNET verified in the *release* manifest |
-| 0b food database | done | 11,889 foods, 34,781 portions, 3.3 MB, USDA only |
-| 1 skeleton, tokens, widgets | done | |
-| 2 goal engine | done | 44 unit tests |
-| 2b onboarding | done | 13 widget tests over the safety rules |
-| 3 manual logging | done | 26 tests against the real shipped database |
-| 4 home / day view | done | |
-| 5 calendar | done | |
-| 6 photo path + Worker | code complete | **Worker not yet deployed — see below** |
-| 7 goal editing, sources, a11y | done | 9 accessibility checks |
+**185 tests passing, `flutter analyze` clean, release APK builds.**
 
-### What still needs a human
+| Phase | State |
+|---|---|
+| 0 toolchain, rename, Android | done — INTERNET verified in the *release* manifest |
+| 0b food database | done — 17,794 foods, 4.2 MB, six sources |
+| 1 skeleton, tokens, widgets | done |
+| 2 goal engine | done — 44 unit tests |
+| 2b onboarding | done — 13 widget tests over the safety rules |
+| 3 manual logging | done — 26 tests against the real shipped database |
+| 4 home / day view | done |
+| 5 calendar | done |
+| 6 photo path + Worker | **done and verified on a real phone** |
+| 7 goal, sources, a11y | done — 9 accessibility checks |
 
-1. **Deploy the Worker.** `worker/README.md` has the steps. Until then the
-   photo options are simply not offered and manual logging is unaffected — a
-   build without `CALORI_WORKER_URL` is valid and complete.
-2. **`curl` the Worker before trusting it**, per 6a. A provider quietly
-   ignoring the JSON schema is visible in `wrangler tail` and nowhere else.
-3. **Run the app on a device.** Every screen is covered by tests, but no test
-   judges whether the date strip centres nicely or the ring sweep feels right.
-4. **The remaining six food sources** (CoFID, CIQUAL, CNF, Frida, INDB,
-   Pakistan FCT). Each is one file in `tools/build_foods_db/sources/`; the
-   merge ships with whatever is ready.
+### Still open
 
-### Bugs the tests caught that review would not have
+1. **CNF (Canada) and Frida (Denmark)** — their published file URLs have moved
+   since this plan was written and need re-finding. Pakistan FCT is PDF-only.
+   Each is one file in `tools/build_foods_db/sources/`.
+2. **The capture screen.** The design has a viewfinder with a Gallery button
+   beside the shutter; the app hands off to the system camera instead, so
+   gallery import is currently a long-press on the nav camera button. A faithful
+   version needs the `camera` package.
+3. **The Add food screen keeps the nav bar in the design**; here it is a pushed
+   route with a close button.
 
-- `@riverpod` is auto-dispose by default in Riverpod 3, so the onboarding draft
-  was discarded as each step unmounted — the flow still advanced, reaching the
-  final screen with an empty draft and no error.
-- Ten of fourteen text tokens carried no colour. Flutter's fallback is **white**,
-  so most body text would have rendered invisibly on the near-white background.
-  `find.text()` does not check colour, so only a contrast guideline caught it.
-- FNDDS uses legacy SR nutrient numbering in a column named `nutrient_id`,
-  which parsed to zero records rather than erroring.
-- The first validator rejected lard, vodka and whole turkeys as implausible.
+### Bugs the tests and the device caught
+
+Worth keeping, because each one passed review, analysis, and the whole suite:
+
+- **`@riverpod` is auto-dispose, twice.** The onboarding draft was destroyed as
+  each step unmounted — every answer discarded while the flow still advanced.
+  Then `PhotoCapture` was destroyed while the camera was open, so writing state
+  on the way back threw into an async gap with no catch: camera closed, nothing
+  happened, no request sent.
+- **Ten of fourteen text tokens had no colour.** Flutter's fallback is white, so
+  most body text would have rendered invisibly. 150 tests passed with it.
+- **FNDDS uses legacy SR nutrient numbering** in a column named `nutrient_id`,
+  which parses to zero records rather than erroring.
+- **The first validator rejected lard, vodka, whole turkeys and brown sugar** —
+  all real foods, all failing plausibility rules that were too tight.
+- **Three RenderFlex overflows** on phone-sized viewports, invisible at the
+  800x600 default test surface.
