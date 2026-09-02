@@ -92,9 +92,20 @@ mirrored here whenever the database is rebuilt.
 - **Publisher:** Government of Pakistan / UNICEF; hosted by FAO
 - **URL:** https://www.fao.org/fileadmin/templates/food_composition/documents/regional/Book_Food_Composition_Table_for_Pakistan_.pdf
 - **Licence:** FAO-hosted publication. Terms to be confirmed before shipping this source.
-- **Obligation:** Attribution. **Verify FAO's reuse terms before including in a release build.**
+- **Obligation:** Attribution. **⚠ Verify FAO's reuse terms before a public release build.**
+  This source is now *included in the build* — 175 foods — so this is no longer
+  a hypothetical. Every other source here is explicitly redistributable; this
+  one is not yet established as such. Either confirm the terms or drop
+  `PAKISTAN` from `SOURCES` in `tools/build_foods_db/build.py` and rebuild.
+- **Source:** the published table is a scanned PDF with no text layer. The build
+  reads a transcribed spreadsheet placed by hand at
+  `tools/build_foods_db/.cache/pakistan_fct/pakistan_fct.xlsx`; the figures are
+  the 2001 table's, the transcription is not FAO's.
 - **Attribution used:**
-  > Food Composition Table for Pakistan (revised 2001).
+  > Food Composition Table for Pakistan (revised 2001). Department of
+  > Agricultural Chemistry and Human Nutrition, NWFP Agricultural University
+  > Peshawar, with UNICEF Islamabad and the Ministry of Planning and
+  > Development, Government of Pakistan.
 - **Retrieved:** _stamped at build_
 
 ---

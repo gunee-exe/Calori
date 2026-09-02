@@ -33,14 +33,16 @@ from sources.ciqual import CIQUAL
 from sources.cnf import CNF
 from sources.cofid import COFID
 from sources.indb import INDB
+from sources.pakistan import PAKISTAN
 from sources.usda import FNDDS, FOUNDATION, SR_LEGACY  # noqa: E402
 
 #: Every registered adapter. Adding a dataset is one import and one entry.
 #:
-#: Sources not yet implemented (CoFID, CIQUAL, CNF, Frida, INDB, Pakistan FCT)
-#: are tracked in 03-food-data.md. The pipeline is deliberately additive: each
-#: is an independent file, so the merge can ship with whatever is ready and
-#: gain the rest without any change to the app.
+#: Frida (Denmark) is the last source in 03-food-data.md still unimplemented,
+#: and is on hold: the site moved and does not resolve, so a parser would have
+#: to be written against a guessed layout. The pipeline is deliberately
+#: additive — each adapter is an independent file, so the merge ships with
+#: whatever is ready and gains the rest without any change to the app.
 SOURCES: list[Source] = [
     SR_LEGACY,
     FOUNDATION,
@@ -49,6 +51,7 @@ SOURCES: list[Source] = [
     COFID,
     CIQUAL,
     CNF,
+    PAKISTAN,
 ]
 
 DEFAULT_OUT = HERE.parent.parent / "assets" / "db" / "foods.sqlite"

@@ -357,6 +357,58 @@ void main() {
     });
   });
 
+
+  group('the Pakistan table', () {
+    test('carries dishes no other source has', () async {
+      // These returned nothing at all before this source was added. They are
+      // the reason it was worth adding: no US, UK, French or Canadian table
+      // has them, and INDB does not either.
+      for (final dish in [
+        'haleem',
+        'sajji',
+        'chapal kabab',
+        'shami kabab',
+        'zarda',
+        'kalool',
+      ]) {
+        expect(
+          await foods.search(dish),
+          isNotEmpty,
+          reason: 'no results for "$dish"',
+        );
+      }
+    });
+
+    test('every food is findable by its Urdu name and its English one', () async {
+      // The requirement, stated plainly: someone typing "masur" and someone
+      // typing "lentil" have to land on the same food. The Urdu name is folded
+      // into the search name for exactly this, and FTS5's unicode61 tokenizer
+      // splits on the brackets so both words index separately.
+      for (final (english, urdu) in [
+        ('chickpea', 'channa'),
+        ('lentil', 'masur'),
+        ('onion', 'piaz'),
+        ('barley', 'jou'),
+        ('corn', 'makai'),
+      ]) {
+        final byUrdu = await foods.search(urdu);
+        expect(byUrdu, isNotEmpty, reason: 'nothing found for "$urdu"');
+
+        // Landing on *a* result is not enough — it has to be the same food.
+        // A row carrying both words is what proves the alias reached the index.
+        expect(
+          byUrdu.any(
+            (f) =>
+                f.name.toLowerCase().contains(english) &&
+                f.name.toLowerCase().contains(urdu),
+          ),
+          isTrue,
+          reason: 'searching "$urdu" found nothing that is also "$english"',
+        );
+      }
+    });
+  });
+
   group('meal type defaults', () {
     test('picks a plausible meal for the time of day', () {
       expect(mealTypeForNow(DateTime(2026, 8, 26, 8)), MealType.breakfast);
