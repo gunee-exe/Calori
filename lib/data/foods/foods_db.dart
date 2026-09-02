@@ -26,7 +26,7 @@ part 'foods_db.g.dart';
 /// The version is carried in the on-disk *filename*, so a bump is what triggers
 /// the re-copy. Sidecar stamp files and SharedPreferences both have a torn-write
 /// failure mode — stamp written, copy incomplete — that a filename cannot have.
-const kFoodsAssetVersion = 1;
+const kFoodsAssetVersion = 2;
 
 const _assetPath = 'assets/db/foods.sqlite';
 

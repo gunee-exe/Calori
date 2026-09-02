@@ -17,7 +17,7 @@ from models import SourceInfo
 #: Bump when the schema or the source set changes in a way the app must notice.
 #: Must be kept in step with kFoodsAssetVersion in lib/data/foods/foods_db.dart,
 #: which is what triggers the on-device re-copy.
-BUILD_VERSION = 1
+BUILD_VERSION = 2
 
 
 def build(
