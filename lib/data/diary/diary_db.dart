@@ -30,7 +30,7 @@ class DiaryDb extends _$DiaryDb {
   DiaryDb.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,7 +42,17 @@ class DiaryDb extends _$DiaryDb {
       if (from < 2) {
         await m.addColumn(profiles, profiles.kcalOverride);
         await m.addColumn(profiles, profiles.proteinOverrideG);
-        await m.addColumn(profiles, profiles.usesImperial);
+        await m.addColumn(profiles, profiles.usesPounds);
+      }
+
+      // v2 -> v3: height and weight units become separate choices. Only the
+      // new column is added; `uses_imperial` stays put and means pounds now.
+      if (from < 3) {
+        await m.addColumn(profiles, profiles.usesFeet);
+        // Anyone who already chose imperial meant both. Carrying the old flag
+        // across keeps their height in feet, where defaulting to false would
+        // silently reset it to centimetres the next time they opened Goal.
+        await customStatement('UPDATE profiles SET uses_feet = uses_imperial');
       }
     },
     onCreate: (m) async {

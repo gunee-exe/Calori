@@ -1,4 +1,4 @@
-/// The v1 -> v2 diary migration.
+/// The diary migrations, v1 -> v2 -> v3.
 ///
 /// Tested against a database actually created at v1, not a fresh one. A fresh
 /// install runs `onCreate` and never touches `onUpgrade`, so testing that way
@@ -33,6 +33,29 @@ CREATE TABLE profiles (
   daily_protein_g INTEGER NOT NULL,
   daily_carbs_g INTEGER NOT NULL,
   daily_fat_g INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+)''';
+
+
+/// `profiles` as schema 2 left it: the override columns and a single
+/// `uses_imperial` flag covering height *and* weight, but no `uses_feet`.
+const _v2Profiles = '''
+CREATE TABLE profiles (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  sex TEXT NOT NULL,
+  age INTEGER NOT NULL,
+  height_cm REAL NOT NULL,
+  weight_kg REAL NOT NULL,
+  target_weight_kg REAL NOT NULL,
+  activity_level TEXT NOT NULL,
+  target_date INTEGER,
+  daily_kcal INTEGER NOT NULL,
+  daily_protein_g INTEGER NOT NULL,
+  daily_carbs_g INTEGER NOT NULL,
+  daily_fat_g INTEGER NOT NULL,
+  kcal_override INTEGER,
+  protein_override_g INTEGER,
+  uses_imperial INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL
 )''';
 
@@ -75,7 +98,8 @@ INSERT INTO profiles (
     // as an error, which is what lets a pre-existing row work untouched.
     expect(profile.kcalOverride, isNull);
     expect(profile.proteinOverrideG, isNull);
-    expect(profile.usesImperial, isFalse);
+    expect(profile.usesPounds, isFalse);
+    expect(profile.usesFeet, isFalse);
     expect(profile.hasManualGoals, isFalse);
   });
 
@@ -100,7 +124,8 @@ INSERT INTO profiles (
         dailyFatG: 70,
         kcalOverride: 2400,
         proteinOverrideG: 180,
-        usesImperial: true,
+        usesPounds: true,
+        usesFeet: true,
       ),
     );
 
@@ -108,7 +133,8 @@ INSERT INTO profiles (
     expect(after.kcalOverride, 2400);
     expect(after.proteinOverrideG, 180);
     expect(after.hasManualGoals, isTrue);
-    expect(after.usesImperial, isTrue);
+    expect(after.usesPounds, isTrue);
+    expect(after.usesFeet, isTrue);
   });
 
   test('reopening an already-migrated database is a no-op', () async {
@@ -121,5 +147,48 @@ INSERT INTO profiles (
     final second = DiaryDb.forTesting(NativeDatabase(file));
     addTearDown(second.close);
     expect(await DiaryRepositoryImpl(second).profile(), isNotNull);
+  });
+
+  /// Rewrites the fixture as a schema-2 database with `uses_imperial` set.
+  void seedV2({required bool imperial}) {
+    file.deleteSync();
+    final raw = sqlite3.open(file.path);
+    raw.execute(_v2Profiles);
+    raw.execute('''
+INSERT INTO profiles (
+  sex, age, height_cm, weight_kg, target_weight_kg, activity_level,
+  daily_kcal, daily_protein_g, daily_carbs_g, daily_fat_g, uses_imperial,
+  updated_at
+) VALUES ('female', 41, 165, 68, 62, 'light', 1800, 120, 180, 60, ${imperial ? 1 : 0}, 0)''');
+    raw.execute('PRAGMA user_version = 2');
+    raw.close();
+  }
+
+  test('a v2 imperial profile keeps feet as well as pounds', () async {
+    seedV2(imperial: true);
+
+    final db = DiaryDb.forTesting(NativeDatabase(file));
+    addTearDown(db.close);
+
+    final profile = (await DiaryRepositoryImpl(db).profile())!;
+
+    // The v2 flag meant both. Adding uses_feet with a plain false default would
+    // have silently moved this user's height back to centimetres the next time
+    // they opened the Goal screen, which is the kind of change nobody reports
+    // and everybody notices.
+    expect(profile.usesPounds, isTrue);
+    expect(profile.usesFeet, isTrue, reason: 'the old flag was not carried over');
+  });
+
+  test('a v2 metric profile stays metric on both', () async {
+    seedV2(imperial: false);
+
+    final db = DiaryDb.forTesting(NativeDatabase(file));
+    addTearDown(db.close);
+
+    final profile = (await DiaryRepositoryImpl(db).profile())!;
+    expect(profile.usesPounds, isFalse);
+    expect(profile.usesFeet, isFalse);
+    expect(profile.weightKg, 68);
   });
 }

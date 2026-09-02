@@ -62,7 +62,7 @@ final class OnboardingProvider
   }
 }
 
-String _$onboardingHash() => r'6b83387f8816ca46065588589af0e01196c47da8';
+String _$onboardingHash() => r'73541274153b76e0f521a304d7383cc057dd44dd';
 
 /// The draft must outlive any individual step.
 ///

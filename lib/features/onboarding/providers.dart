@@ -29,7 +29,8 @@ class OnboardingDraft {
     this.targetWeightKg,
     this.weeks = 12,
     this.activity,
-    this.usesImperial = false,
+    this.usesPounds = false,
+    this.usesFeet = false,
   });
 
   final Sex? sex;
@@ -45,10 +46,12 @@ class OnboardingDraft {
 
   final ActivityLevel? activity;
 
-  /// Show feet, inches and pounds. A display preference carried through the
-  /// flow so the Goal screen opens in the units the answers were given in.
+  /// How weight and height are shown, as two independent choices — someone can
+  /// give their height in feet and their weight in kilos. Carried through the
+  /// flow so the Goal screen opens in the units the answers were given in;
   /// [heightCm] and [weightKg] stay metric regardless.
-  final bool usesImperial;
+  final bool usesPounds;
+  final bool usesFeet;
 
   OnboardingDraft copyWith({
     Sex? sex,
@@ -58,7 +61,8 @@ class OnboardingDraft {
     double? targetWeightKg,
     int? weeks,
     ActivityLevel? activity,
-    bool? usesImperial,
+    bool? usesPounds,
+    bool? usesFeet,
   }) => OnboardingDraft(
     sex: sex ?? this.sex,
     age: age ?? this.age,
@@ -67,7 +71,8 @@ class OnboardingDraft {
     targetWeightKg: targetWeightKg ?? this.targetWeightKg,
     weeks: weeks ?? this.weeks,
     activity: activity ?? this.activity,
-    usesImperial: usesImperial ?? this.usesImperial,
+    usesPounds: usesPounds ?? this.usesPounds,
+    usesFeet: usesFeet ?? this.usesFeet,
   );
 
   /// Whether the engine can be run. Activity is the last input, so everything
@@ -121,8 +126,9 @@ class Onboarding extends _$Onboarding {
   void setAge(int value) => state = state.copyWith(age: value);
   void setHeight(double value) => state = state.copyWith(heightCm: value);
   void setWeight(double value) => state = state.copyWith(weightKg: value);
-  void setUnits(bool imperial) =>
-      state = state.copyWith(usesImperial: imperial);
+  /// Sets one unit preference and leaves the other alone.
+  void setUnits({bool? pounds, bool? feet}) =>
+      state = state.copyWith(usesPounds: pounds, usesFeet: feet);
 
   void setActivity(ActivityLevel value) =>
       state = state.copyWith(activity: value);

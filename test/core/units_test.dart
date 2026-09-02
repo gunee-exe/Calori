@@ -79,4 +79,17 @@ void main() {
       expect(poundsToKg(880), lessThanOrEqualTo(400));
     });
   });
+
+  group('the two preferences are independent', () {
+    test('feet with kilograms, and centimetres with pounds, both format', () {
+      // The pair used to be one flag, which made these two combinations
+      // unsayable. They are ordinary: plenty of people give a height in feet
+      // and a weight in kilos.
+      expect(formatHeight(177.8, imperial: true), "5'10\"");
+      expect(formatWeight(78, imperial: false), '78 kg');
+
+      expect(formatHeight(178, imperial: false), '178 cm');
+      expect(formatWeight(78, imperial: true), '172 lb');
+    });
+  });
 }

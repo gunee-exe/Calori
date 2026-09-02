@@ -48,7 +48,8 @@ class DiaryRepositoryImpl implements DiaryRepository {
       targetDate: Value(p.targetDate),
       kcalOverride: Value(p.kcalOverride),
       proteinOverrideG: Value(p.proteinOverrideG),
-      usesImperial: Value(p.usesImperial),
+      usesPounds: Value(p.usesPounds),
+      usesFeet: Value(p.usesFeet),
     );
 
     // Single-row table: replace rather than accumulate revisions.
@@ -376,7 +377,8 @@ class DiaryRepositoryImpl implements DiaryRepository {
       targetDate: row.targetDate,
       kcalOverride: row.kcalOverride,
       proteinOverrideG: row.proteinOverrideG,
-      usesImperial: row.usesImperial,
+      usesPounds: row.usesPounds,
+      usesFeet: row.usesFeet,
     );
   }
 }

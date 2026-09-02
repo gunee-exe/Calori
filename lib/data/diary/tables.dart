@@ -47,14 +47,25 @@ class Profiles extends Table {
   IntColumn get kcalOverride => integer().nullable()();
   IntColumn get proteinOverrideG => integer().nullable()();
 
-  /// Whether to show heights in feet and inches and weights in pounds.
+  /// How heights and weights are shown, as **two** questions.
   ///
-  /// A display preference only: [heightCm] and [weightKg] are always metric, so
-  /// nothing downstream of this column knows it exists. Stored on the profile
-  /// rather than in preferences because it is answered during onboarding and
-  /// must already be right the first time the Goal screen is opened.
-  BoolColumn get usesImperial =>
-      boolean().withDefault(const Constant(false))();
+  /// They were one flag, which forced a choice that fits neither of the people
+  /// who have to make it: plenty of users give their height in feet and inches
+  /// and their weight in kilos, and the single switch made one of those wrong
+  /// whichever way it was set.
+  ///
+  /// Display only. [heightCm] and [weightKg] are always metric, so nothing
+  /// downstream of these columns knows they exist. Stored on the profile rather
+  /// than in preferences because they are answered during onboarding and must
+  /// already be right the first time the Goal screen opens.
+  ///
+  /// [usesPounds] keeps the original `uses_imperial` column name. Drift lets the
+  /// Dart getter differ from the SQL column, so the honest name costs neither a
+  /// migration nor a rewrite of existing rows.
+  BoolColumn get usesPounds =>
+      boolean().named('uses_imperial').withDefault(const Constant(false))();
+
+  BoolColumn get usesFeet => boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get updatedAt => dateTime()();
 }

@@ -174,7 +174,8 @@ class _ResultStepState extends ConsumerState<ResultStep> {
           dailyCarbsG: target.carbsG,
           dailyFatG: target.fatG,
           targetDate: target.targetDate,
-          usesImperial: draft.usesImperial,
+          usesPounds: draft.usesPounds,
+          usesFeet: draft.usesFeet,
         ),
       );
       // No navigation here: the app routes on the profile stream, so writing

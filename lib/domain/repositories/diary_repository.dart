@@ -51,7 +51,8 @@ class UserProfile {
     this.targetDate,
     this.kcalOverride,
     this.proteinOverrideG,
-    this.usesImperial = false,
+    this.usesPounds = false,
+    this.usesFeet = false,
   });
 
   final Sex sex;
@@ -78,9 +79,11 @@ class UserProfile {
   final int? kcalOverride;
   final int? proteinOverrideG;
 
-  /// Show feet and inches, and pounds. Display only — the stored height and
-  /// weight are always metric.
-  final bool usesImperial;
+  /// How to show weight and height, as two independent choices — plenty of
+  /// people give their height in feet and their weight in kilos. Display only:
+  /// the stored height and weight are always metric.
+  final bool usesPounds;
+  final bool usesFeet;
 
   bool get hasManualGoals => kcalOverride != null || proteinOverrideG != null;
 }

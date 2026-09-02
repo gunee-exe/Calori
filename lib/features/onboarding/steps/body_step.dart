@@ -5,9 +5,10 @@
 /// Mifflin-St Jeor, the BMI checks and every stored profile on one set of
 /// units, which is the only way the arithmetic stays checkable.
 ///
-/// The two travel under one switch rather than two. Someone who gives their
-/// height in feet and inches almost always gives their weight in pounds, and
-/// separate switches would be twice the control for a case nobody has.
+/// Height and weight get **a switch each**. They shared one, on the assumption
+/// that anyone giving a height in feet would give a weight in pounds — which is
+/// simply not true, and the single switch made one of the two answers wrong
+/// whichever way it was set.
 library;
 
 import 'package:flutter/material.dart';
@@ -38,15 +39,15 @@ class _BodyStepState extends ConsumerState<BodyStep> {
   late final _draft = ref.read(onboardingProvider);
 
   late final _height = TextEditingController(
-    text: _draft.usesImperial ? '' : _initial(_draft.heightCm),
+    text: _draft.usesFeet ? '' : _initial(_draft.heightCm),
   );
   late final _feet = TextEditingController(
-    text: _draft.usesImperial && _draft.heightCm != null
+    text: _draft.usesFeet && _draft.heightCm != null
         ? '${cmToFeetInches(_draft.heightCm!).feet}'
         : '',
   );
   late final _inches = TextEditingController(
-    text: _draft.usesImperial && _draft.heightCm != null
+    text: _draft.usesFeet && _draft.heightCm != null
         ? '${cmToFeetInches(_draft.heightCm!).inches}'
         : '',
   );
@@ -54,7 +55,7 @@ class _BodyStepState extends ConsumerState<BodyStep> {
     text: _draft.weightKg == null
         ? ''
         : _initial(
-            _draft.usesImperial
+            _draft.usesPounds
                 ? kgToPounds(_draft.weightKg!).roundToDouble()
                 : _draft.weightKg,
           ),
@@ -63,7 +64,11 @@ class _BodyStepState extends ConsumerState<BodyStep> {
   static String _initial(double? value) =>
       value == null ? '' : (value % 1 == 0 ? value.toInt() : value).toString();
 
-  bool get _imperial => ref.watch(onboardingProvider).usesImperial;
+  /// The two unit choices, watched separately. Height in feet and weight in
+  /// kilograms is a perfectly ordinary combination, and one flag could not say
+  /// it.
+  bool get _usesFeet => ref.watch(onboardingProvider).usesFeet;
+  bool get _usesPounds => ref.watch(onboardingProvider).usesPounds;
 
   // Accept a comma as a decimal separator: most of continental Europe and
   // much of South Asia types 70,5 rather than 70.5.
@@ -71,7 +76,7 @@ class _BodyStepState extends ConsumerState<BodyStep> {
       double.tryParse(text.replaceAll(',', '.'));
 
   double? get _heightValue {
-    if (!_imperial) return _parse(_height.text);
+    if (!_usesFeet) return _parse(_height.text);
 
     // Inches are optional. "Six foot" is a thing people say, and refusing to
     // continue until a 0 is typed would be pedantry.
@@ -83,7 +88,7 @@ class _BodyStepState extends ConsumerState<BodyStep> {
   double? get _weightValue {
     final raw = _parse(_weight.text);
     if (raw == null) return null;
-    return _imperial ? poundsToKg(raw) : raw;
+    return _usesPounds ? poundsToKg(raw) : raw;
   }
 
   // Ranges wide enough to be inclusive and narrow enough to catch a typo — a
@@ -121,26 +126,34 @@ class _BodyStepState extends ConsumerState<BodyStep> {
   /// Converting rather than clearing matters: someone who fills the fields in
   /// and only then notices the toggle should not have to start again, and a
   /// field emptying itself reads as the app having lost the answer.
-  void _switchTo(bool imperial) {
-    if (imperial == _imperial) return;
+  void _switchHeight(bool feet) {
+    if (feet == _usesFeet) return;
 
-    // Read before the switch, while the getters still parse the old units.
+    // Read before the switch, while the getter still parses the old units.
     final cm = _heightValue;
-    final kg = _weightValue;
 
-    if (imperial) {
-      if (cm != null) {
+    if (cm != null) {
+      if (feet) {
         final (:feet, :inches) = cmToFeetInches(cm);
         _feet.text = '$feet';
         _inches.text = '$inches';
+      } else {
+        _height.text = cm.round().toString();
       }
-      if (kg != null) _weight.text = kgToPounds(kg).round().toString();
-    } else {
-      if (cm != null) _height.text = cm.round().toString();
-      if (kg != null) _weight.text = kg.round().toString();
     }
 
-    ref.read(onboardingProvider.notifier).setUnits(imperial);
+    ref.read(onboardingProvider.notifier).setUnits(feet: feet);
+  }
+
+  void _switchWeight(bool pounds) {
+    if (pounds == _usesPounds) return;
+
+    final kg = _weightValue;
+    if (kg != null) {
+      _weight.text = (pounds ? kgToPounds(kg) : kg).round().toString();
+    }
+
+    ref.read(onboardingProvider.notifier).setUnits(pounds: pounds);
   }
 
   void _continue() {
@@ -153,7 +166,8 @@ class _BodyStepState extends ConsumerState<BodyStep> {
 
   @override
   Widget build(BuildContext context) {
-    final imperial = _imperial;
+    final usesFeet = _usesFeet;
+    final usesPounds = _usesPounds;
 
     final decimal = [
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
@@ -174,10 +188,15 @@ class _BodyStepState extends ConsumerState<BodyStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          UnitToggle(imperial: imperial, onChanged: _switchTo),
+          UnitToggle(
+            metric: 'cm',
+            imperial: "ft'in",
+            isImperial: usesFeet,
+            onChanged: _switchHeight,
+          ),
           const SizedBox(height: 18),
 
-          if (imperial)
+          if (usesFeet)
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -212,11 +231,18 @@ class _BodyStepState extends ConsumerState<BodyStep> {
               onChanged: (_) => setState(() {}),
             ),
 
+          const SizedBox(height: 18),
+          UnitToggle(
+            metric: 'kg',
+            imperial: 'lb',
+            isImperial: usesPounds,
+            onChanged: _switchWeight,
+          ),
           const SizedBox(height: 16),
           NumberField(
             controller: _weight,
             label: 'Current weight',
-            suffix: imperial ? 'lb' : 'kg',
+            suffix: usesPounds ? 'lb' : 'kg',
             inputFormatters: decimal,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _continue(),
@@ -227,15 +253,19 @@ class _BodyStepState extends ConsumerState<BodyStep> {
   }
 }
 
-/// Metric or imperial, for every height and weight the app asks for.
+/// One unit choice: metric or imperial, for a single measurement.
 class UnitToggle extends StatelessWidget {
   const UnitToggle({
     super.key,
+    required this.metric,
     required this.imperial,
+    required this.isImperial,
     required this.onChanged,
   });
 
-  final bool imperial;
+  final String metric;
+  final String imperial;
+  final bool isImperial;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -244,16 +274,16 @@ class UnitToggle extends StatelessWidget {
       children: [
         Expanded(
           child: PillButton(
-            label: 'kg / cm',
-            variant: imperial ? PillVariant.surface : PillVariant.primary,
+            label: metric,
+            variant: isImperial ? PillVariant.surface : PillVariant.primary,
             onPressed: () => onChanged(false),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: PillButton(
-            label: "lb / ft'in",
-            variant: imperial ? PillVariant.primary : PillVariant.surface,
+            label: imperial,
+            variant: isImperial ? PillVariant.primary : PillVariant.surface,
             onPressed: () => onChanged(true),
           ),
         ),

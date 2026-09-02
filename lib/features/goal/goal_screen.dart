@@ -83,7 +83,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     final profile = ref.watch(profileProvider).value;
     if (profile == null) return const _Empty();
 
-    final imperial = profile.usesImperial;
+    final pounds = profile.usesPounds;
     final weight = _weight ?? profile.weightKg;
     final target = _target ?? profile.targetWeightKg;
     final rate = _rate ?? _rateFrom(profile);
@@ -151,22 +151,22 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
 
             StepperRow(
               label: 'Current weight',
-              detail: imperial ? 'pounds' : 'kilograms',
-              value: _forDisplay(weight, imperial),
-              suffix: imperial ? ' lb' : ' kg',
-              min: _forDisplay(25, imperial),
-              max: _forDisplay(400, imperial),
-              onChanged: (v) => _edit(() => _weight = _toKg(v, imperial)),
+              detail: pounds ? 'pounds' : 'kilograms',
+              value: _forDisplay(weight, pounds),
+              suffix: pounds ? ' lb' : ' kg',
+              min: _forDisplay(25, pounds),
+              max: _forDisplay(400, pounds),
+              onChanged: (v) => _edit(() => _weight = _toKg(v, pounds)),
             ),
             const SizedBox(height: 10),
             StepperRow(
               label: 'Goal weight',
-              detail: imperial ? 'pounds' : 'kilograms',
-              value: _forDisplay(target, imperial),
-              suffix: imperial ? ' lb' : ' kg',
-              min: _forDisplay(25, imperial),
-              max: _forDisplay(400, imperial),
-              onChanged: (v) => _edit(() => _target = _toKg(v, imperial)),
+              detail: pounds ? 'pounds' : 'kilograms',
+              value: _forDisplay(target, pounds),
+              suffix: pounds ? ' lb' : ' kg',
+              min: _forDisplay(25, pounds),
+              max: _forDisplay(400, pounds),
+              onChanged: (v) => _edit(() => _target = _toKg(v, pounds)),
             ),
             const SizedBox(height: 10),
             StepperRow(
@@ -187,9 +187,24 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
             const SizedBox(height: 26),
             const SectionLabel('About'),
             const SizedBox(height: 12),
+            // Two rows, not one. The Goal screen shows no height, but the
+            // choice is answered during onboarding and has to be changeable
+            // somewhere — and someone who picked feet by accident should not
+            // have to move their weight to pounds in order to undo it.
             _UnitsRow(
-              imperial: imperial,
-              onChanged: (value) => _setUnits(profile, value),
+              label: 'Weight',
+              metric: 'kg',
+              imperial: 'lb',
+              isImperial: pounds,
+              onChanged: (v) => _setUnits(profile, pounds: v),
+            ),
+            const SizedBox(height: 10),
+            _UnitsRow(
+              label: 'Height',
+              metric: 'cm',
+              imperial: "ft'in",
+              isImperial: profile.usesFeet,
+              onChanged: (v) => _setUnits(profile, feet: v),
             ),
             const SizedBox(height: 10),
             _AboutRow(
@@ -218,18 +233,27 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
 
   /// Pounds are shown whole. Stepping from an unrounded 171.96 lb would land
   /// on 171 on the first press, which reads as the number jumping.
-  static double _forDisplay(double kg, bool imperial) =>
-      imperial ? kgToPounds(kg).roundToDouble() : kg;
+  static double _forDisplay(double kg, bool pounds) =>
+      pounds ? kgToPounds(kg).roundToDouble() : kg;
 
-  static double _toKg(double shown, bool imperial) =>
-      imperial ? poundsToKg(shown) : shown;
+  static double _toKg(double shown, bool pounds) =>
+      pounds ? poundsToKg(shown) : shown;
 
-  Future<void> _setUnits(UserProfile profile, bool imperial) async {
+  /// Changes one unit preference and leaves the other exactly as it was.
+  Future<void> _setUnits(
+    UserProfile profile, {
+    bool? pounds,
+    bool? feet,
+  }) async {
     // Written straight through rather than debounced: this is a preference,
     // not a nudge, and the steppers beneath it change units as it lands.
-    await ref
-        .read(diaryRepositoryProvider)
-        .saveProfile(_copy(profile, usesImperial: imperial));
+    await ref.read(diaryRepositoryProvider).saveProfile(
+      _copy(
+        profile,
+        usesPounds: pounds ?? profile.usesPounds,
+        usesFeet: feet ?? profile.usesFeet,
+      ),
+    );
   }
 
   // -- Overrides ----------------------------------------------------------
@@ -441,7 +465,8 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     DateTime? targetDate,
     int? kcalOverride,
     int? proteinOverrideG,
-    bool? usesImperial,
+    bool? usesPounds,
+    bool? usesFeet,
   }) => UserProfile(
     sex: p.sex,
     age: p.age,
@@ -456,7 +481,8 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     targetDate: targetDate,
     kcalOverride: kcalOverride,
     proteinOverrideG: proteinOverrideG,
-    usesImperial: usesImperial ?? p.usesImperial,
+    usesPounds: usesPounds ?? p.usesPounds,
+    usesFeet: usesFeet ?? p.usesFeet,
   );
 
   Future<void> _commit() async {
@@ -770,11 +796,20 @@ class _NumberSheetState extends State<_NumberSheet> {
   }
 }
 
-/// Metric or imperial, for every height and weight the app shows.
+/// One unit choice — weight or height, never both at once.
 class _UnitsRow extends StatelessWidget {
-  const _UnitsRow({required this.imperial, required this.onChanged});
+  const _UnitsRow({
+    required this.label,
+    required this.metric,
+    required this.imperial,
+    required this.isImperial,
+    required this.onChanged,
+  });
 
-  final bool imperial;
+  final String label;
+  final String metric;
+  final String imperial;
+  final bool isImperial;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -783,16 +818,16 @@ class _UnitsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       child: Row(
         children: [
-          const Expanded(child: Text('Units', style: AppType.body)),
+          Expanded(child: Text(label, style: AppType.body)),
           SelectableChip(
-            label: 'kg / cm',
-            selected: !imperial,
+            label: metric,
+            selected: !isImperial,
             onTap: () => onChanged(false),
           ),
           const SizedBox(width: 8),
           SelectableChip(
-            label: "lb / ft'in",
-            selected: imperial,
+            label: imperial,
+            selected: isImperial,
             onTap: () => onChanged(true),
           ),
         ],
