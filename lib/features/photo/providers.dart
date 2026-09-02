@@ -16,26 +16,21 @@ import '../../domain/models/enums.dart';
 
 part 'providers.g.dart';
 
-/// The deployed Worker.
+/// The Worker to call, supplied at build time by whoever deploys one.
 ///
-/// The **endpoint** carries a default so it need not be repeated on every
-/// build. It is a public HTTPS URL and reveals nothing: the OpenRouter key
-/// lives in the Worker's KV and never enters the app.
-///
-/// The **secret deliberately has no default.** It is a live credential, and a
-/// default would commit it to git — which is exactly what `worker-config.json`
-/// being gitignored exists to prevent. That it also ships inside every APK is
-/// not a reason to put it in the repository as well; one exposure is not an
-/// argument for a second, wider, permanent one.
+/// **Neither has a default, deliberately.** The secret is a live credential and
+/// defaulting it would commit it to git, which is exactly what
+/// `worker-config.json` being gitignored exists to prevent. The endpoint did
+/// carry one briefly, and it earned nothing: [photoLoggingAvailable] requires
+/// the secret, so a build without the config file switches the photo path off
+/// before the endpoint is ever read, and a build *with* it overrides the
+/// default anyway. It changed behaviour in no real configuration while naming a
+/// personal Worker in a public repository.
 ///
 /// So `flutter build apk` on its own produces an APK with the photo path
 /// switched off, and a build meant for a phone needs
-/// `--dart-define-from-file=worker-config.json`. [photoLoggingAvailable] makes
-/// the app say which, rather than failing at the network.
-const kWorkerEndpoint = String.fromEnvironment(
-  'CALORI_WORKER_URL',
-  defaultValue: 'https://calori-worker.gunee-exe-whispr.workers.dev/analyze',
-);
+/// `--dart-define-from-file=worker-config.json`. See the README.
+const kWorkerEndpoint = String.fromEnvironment('CALORI_WORKER_URL');
 const kWorkerSecret = String.fromEnvironment('CALORI_WORKER_SECRET');
 
 /// The longest edge the app uploads, and the JPEG quality.
