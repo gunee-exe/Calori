@@ -561,13 +561,36 @@ class _TargetCard extends StatelessWidget {
               child: GestureDetector(
                 onTap: onEditKcal,
                 behavior: HitTestBehavior.opaque,
-                child: Center(
-                  child: Text(
-                    kcal == null ? '—' : formatKcal(kcal!.toDouble()),
-                    style: AppType.goalTarget.copyWith(
-                      color: AppColors.primary,
+                // The pencil is the only thing that says this number can be
+                // changed. Without it the card looks like a readout, and the
+                // hand-set target may as well not exist for anyone who does not
+                // happen to tap it.
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Flexible and scaled down: at this type size a
+                    // four-figure target is already wider than a 320pt phone's
+                    // card, and the Center it used to sit in was quietly
+                    // wrapping it. Inside a Row it takes its natural width and
+                    // overflows, so it has to be allowed to shrink instead.
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          kcal == null ? '—' : formatKcal(kcal!.toDouble()),
+                          style: AppType.goalTarget.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -613,6 +636,7 @@ class _TargetCard extends StatelessWidget {
                     proteinG: macros.protein.toDouble(),
                     carbsG: macros.carbs.toDouble(),
                     fatG: macros.fat.toDouble(),
+                    editable: true,
                   ),
                 ),
               ),

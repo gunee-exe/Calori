@@ -66,6 +66,26 @@ void main() {
       await pump(tester, const Size(320, 568));
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('offers nothing to send until a photo has been taken', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      // The screen starts as a viewfinder. Retake and Send belong to the state
+      // *after* the shutter, and showing either before there is a photo would
+      // offer to send nothing.
+      //
+      // The transition itself — shutter, then Send — cannot be tested here:
+      // `availableCameras()` never completes on a test host, so the controller
+      // stays null and `_shoot` returns immediately. A test that "passed" by
+      // tapping a dead shutter would pass just as happily against the old code
+      // that sent on the shutter press, which is the bug this was changed for.
+      // Device check 1 in the plan is what actually covers it.
+      expect(find.text('Send'), findsNothing);
+      expect(find.text('Retake'), findsNothing);
+      expect(find.text('Gallery'), findsOneWidget);
+    });
   });
 
   group('add details (UC-04)', () {

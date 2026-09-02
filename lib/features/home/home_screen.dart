@@ -192,8 +192,14 @@ class _AddButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      // Lifts it clear of the floating nav bar below.
-      padding: const EdgeInsets.only(bottom: AppLayout.navClearance - 36),
+      // Lifts it clear of the floating nav bar below, which it used to overlap
+      // by eight pixels — sitting on top of the Goal tab.
+      //
+      // The arithmetic, so the number is checkable rather than eyeballed: the
+      // bar is Positioned(bottom: 20) and navBarHeight tall, so its top edge is
+      // at 84. A Scaffold FAB carries a 16 margin of its own, so this padding
+      // puts the button's lower edge at 16 + 80 = 96, leaving a 12px gap.
+      padding: const EdgeInsets.only(bottom: AppLayout.navClearance - 16),
       child: Semantics(
         button: true,
         label: 'Add food manually',

@@ -51,6 +51,14 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 
   bool _taking = false;
 
+  /// The photo that has been taken but not yet sent.
+  ///
+  /// Null means the live viewfinder is showing. Non-null freezes the screen on
+  /// the shot with Retake and Send, which is the whole point: the details field
+  /// is directly above the shutter, and sending on the shutter press made it
+  /// unreachable at the only moment it is any use.
+  File? _shot;
+
   /// The optional hint. Held here rather than in a provider: it belongs to this
   /// capture and should not survive it.
   String _details = '';
@@ -125,16 +133,19 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     }
   }
 
+  /// Takes the photo and stops there.
+  ///
+  /// Deliberately does **not** send it. Firing the request on the shutter press
+  /// made the "Add details" pill directly above it useless: you frame the shot,
+  /// take it, and only then think "that was a chicken karahi, about 300 g".
+  /// Nothing reaches the model until [_send].
   Future<void> _shoot() async {
     final controller = _controller;
     if (_taking || controller == null || !controller.value.isInitialized) return;
 
     setState(() => _taking = true);
 
-    final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final dayKey = ref.read(selectedDayProvider);
-    final hint = _details.trim();
 
     try {
       final shot = await controller.takePicture();
@@ -142,25 +153,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
           .read(photoCaptureProvider.notifier)
           .adopt(File(shot.path));
 
-      if (photo == null) {
-        setState(() => _taking = false);
-        return;
-      }
-
-      unawaited(
-        ref
-            .read(photoAnalysisProvider.notifier)
-            .run(photo, hint: hint.isEmpty ? null : hint),
-      );
-
       if (!mounted) return;
-      // Replaces rather than stacks: coming back from the review screen should
-      // land on Home, not on a viewfinder pointed at a meal already logged.
-      await navigator.pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => ReviewScreen(photo: photo, dayKey: dayKey),
-        ),
-      );
+      setState(() {
+        _taking = false;
+        _shot = photo;
+      });
     } catch (error, stack) {
       FlutterError.reportError(
         FlutterErrorDetails(
@@ -181,6 +178,58 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     }
   }
 
+  /// Discards the shot and returns to the live preview.
+  ///
+  /// The file is deleted, not just forgotten. `adopt` copies every frame into
+  /// app storage, so without this each rejected attempt is kept for the life of
+  /// the install — and a rejected photo is one the user has already decided
+  /// they do not want.
+  Future<void> _discardShot() async {
+    final photo = _shot;
+    if (mounted) setState(() => _shot = null);
+    if (photo == null) return;
+
+    try {
+      if (photo.existsSync()) await photo.delete();
+    } catch (_) {
+      // A file that will not delete is a leak, not something the user can act
+      // on, and certainly not a reason to interrupt them.
+    }
+  }
+
+  /// Sends the photo, with whatever details were typed alongside it.
+  Future<void> _send() async {
+    final photo = _shot;
+    if (photo == null) return;
+
+    final navigator = Navigator.of(context);
+    final dayKey = ref.read(selectedDayProvider);
+    final hint = _details.trim();
+
+    // Started before the route is pushed, so the request is already in flight
+    // while the transition plays.
+    unawaited(
+      ref
+          .read(photoAnalysisProvider.notifier)
+          .run(photo, hint: hint.isEmpty ? null : hint),
+    );
+
+    // Replaces rather than stacks: coming back from the review screen should
+    // land on Home, not on a viewfinder pointed at a meal already logged.
+    await navigator.pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewScreen(photo: photo, dayKey: dayKey),
+      ),
+    );
+  }
+
+  /// Leaves the screen, discarding an unsent shot rather than orphaning it.
+  Future<void> _close() async {
+    final navigator = Navigator.of(context);
+    await _discardShot();
+    navigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -192,6 +241,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
             controller: _controller,
             ready: _ready,
             unavailable: _unavailable,
+            shot: _shot,
           ),
 
           Positioned(
@@ -200,7 +250,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
             child: _RoundButton(
               icon: Icons.close,
               label: 'Close',
-              onTap: () => Navigator.of(context).pop(),
+              onTap: _close,
             ),
           ),
 
@@ -215,15 +265,23 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // The details pill stays put across both states. That is
+                    // the point of the change: it is reachable *after* the
+                    // shutter, when the user actually knows what they shot.
                     _DetailsButton(
                       details: _details,
                       onEdit: _editDetails,
                     ),
                     const SizedBox(height: 20),
-                    _ShutterRow(
-                      onGallery: () => onGalleryPressed(context, ref),
-                      onShoot: _unavailable == null && !_taking ? _shoot : null,
-                    ),
+                    if (_shot == null)
+                      _ShutterRow(
+                        onGallery: () => onGalleryPressed(context, ref),
+                        onShoot: _unavailable == null && !_taking
+                            ? _shoot
+                            : null,
+                      )
+                    else
+                      _ConfirmRow(onRetake: _discardShot, onSend: _send),
                   ],
                 ),
               ),
@@ -247,20 +305,32 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   }
 }
 
-/// The live preview, or the reason there isn't one.
+/// The live preview, the shot just taken, or the reason there is neither.
 class _Preview extends StatelessWidget {
   const _Preview({
     required this.controller,
     required this.ready,
     required this.unavailable,
+    this.shot,
   });
 
   final CameraController? controller;
   final Future<void>? ready;
   final String? unavailable;
 
+  /// A photo taken and not yet sent. Freezes the screen on it so the user can
+  /// see what they are about to send, and add details to it.
+  final File? shot;
+
   @override
   Widget build(BuildContext context) {
+    final taken = shot;
+    if (taken != null) {
+      // Cover, matching the live preview it replaces, so the framing does not
+      // appear to jump at the moment the shutter fires.
+      return Image.file(taken, fit: BoxFit.cover);
+    }
+
     if (unavailable != null) {
       return Center(
         child: Padding(
@@ -374,6 +444,78 @@ class _ShutterRow extends StatelessWidget {
           ),
           _Shutter(onTap: onShoot),
         ],
+      ),
+    );
+  }
+}
+
+/// Retake or Send, shown once a photo has been taken.
+///
+/// Replaces the shutter row rather than sitting beside it: with a shot on
+/// screen there is nothing to shoot, and leaving a live shutter there would
+/// invite a second photo over the first.
+class _ConfirmRow extends StatelessWidget {
+  const _ConfirmRow({required this.onRetake, required this.onSend});
+
+  final VoidCallback onRetake;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppLayout.shutterSize,
+      child: Row(
+        children: [
+          Expanded(child: _OverlayAction(label: 'Retake', onTap: onRetake)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _OverlayAction(
+              label: 'Send',
+              onTap: onSend,
+              primary: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A pill sized for the viewfinder overlay.
+class _OverlayAction extends StatelessWidget {
+  const _OverlayAction({
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: primary ? AppColors.primary : AppColors.overlaySurface,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: primary ? AppShadows.primaryGlow : AppShadows.floating,
+          ),
+          child: Text(
+            label,
+            style: primary
+                ? AppType.overlayAction.copyWith(color: AppColors.surface)
+                : AppType.overlayAction,
+          ),
+        ),
       ),
     );
   }
