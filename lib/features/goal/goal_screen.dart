@@ -390,11 +390,17 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     return ((delta / weeks) / profile.weightKg * 100).clamp(0.1, 1.0);
   }
 
-  /// Runs the same engine onboarding uses, converting rate into weeks.
+  /// Runs the same engine onboarding uses.
   ///
-  /// The design thinks in "% per week"; [GoalEngine] thinks in weeks. Neither
-  /// is wrong — a rate is what a person chooses, a duration is what the
-  /// arithmetic needs.
+  /// This screen thinks in "% per week"; onboarding thinks in weeks. Neither is
+  /// wrong — a rate is what a person chooses here, a duration is what they
+  /// choose there — so the rate is handed to [GoalEngine] as a rate.
+  ///
+  /// It used to be converted into whole weeks and let the engine divide it back
+  /// out, which quantised it: at 95 kg aiming for 92 kg at 1%/week, `ceil` took
+  /// 3.16 weeks to 4 and the target came back **220 kcal** above what the
+  /// chosen rate implies. `weeks` is still passed, because the engine needs it
+  /// for the "you asked for this date" comparison.
   GoalResult _evaluate(
     UserProfile profile,
     double weight,
@@ -416,6 +422,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
         targetWeightKg: target,
         activity: profile.activity,
         weeks: weeks,
+        weeklyRateKg: weekly,
         today: DateTime.now(),
       ),
     );

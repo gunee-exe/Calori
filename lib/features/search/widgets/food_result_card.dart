@@ -131,6 +131,17 @@ class _FoodResultCardState extends ConsumerState<FoodResultCard> {
       if (navigator.canPop()) {
         navigator.pop();
       } else {
+        // Back to its resting state before leaving.
+        //
+        // As the shell's destination this card is *not* disposed — SearchScreen
+        // lives in the shell's IndexedStack, so leaving `_saving` true left it
+        // reading "Saving…" forever, and the `if (_saving) return` guard at the
+        // top then refused every later attempt. The pushed case never showed
+        // this because popping disposes the card.
+        setState(() {
+          _saving = false;
+          _expanded = false;
+        });
         ref.read(shellScreenControllerProvider.notifier).go(ShellScreen.home);
       }
 

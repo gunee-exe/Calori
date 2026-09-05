@@ -25,6 +25,7 @@ class GoalRequest {
     required this.activity,
     required this.weeks,
     required this.today,
+    this.weeklyRateKg,
   });
 
   final Sex sex;
@@ -34,8 +35,26 @@ class GoalRequest {
   final double targetWeightKg;
   final ActivityLevel activity;
 
-  /// The timeframe the user asked for, in weeks. Ignored for maintenance.
+  /// The timeframe the user asked for, in weeks. Ignored for maintenance, and
+  /// ignored for the *rate* when [weeklyRateKg] is given.
   final int weeks;
+
+  /// The rate the user chose directly, in kg per week. Optional.
+  ///
+  /// Onboarding asks for a timeframe, so it leaves this null and the rate is
+  /// derived from [weeks]. The Goal screen asks for a **rate** instead, and
+  /// converting that into whole weeks and back quantises it badly: 3 kg at
+  /// 0.95 kg/week is 3.16 weeks, which rounds up to 4 and reads back as
+  /// 0.75 kg/week — a 220 kcal error in the daily target. Short goals at fast
+  /// rates lose the most, which is exactly where the number matters.
+  ///
+  /// Ignored unless positive, so a nonsense value falls back to [weeks] rather
+  /// than producing a division by zero or a negative deficit.
+  final double? weeklyRateKg;
+
+  /// The chosen rate, or null when the timeframe is what was asked for.
+  double? get _rate =>
+      (weeklyRateKg != null && weeklyRateKg! > 0) ? weeklyRateKg : null;
 
   /// Injected rather than read from the system clock, so date assertions in
   /// tests are stable.
@@ -159,10 +178,22 @@ abstract final class GoalEngine {
     // ---- 3. Clamp the rate to 1% of bodyweight per week. -----------------
     final totalChangeKg = (r.weightKg - r.targetWeightKg).abs();
     final requestedWeeks = math.max(1, r.weeks);
-    final requestedRate = totalChangeKg / requestedWeeks;
     final maxRate = r.weightKg * maxWeeklyRateFraction;
 
-    final requestedDate = _dateAfterWeeks(r.today, requestedWeeks.toDouble());
+    // A rate given directly is honoured as given. Deriving it from whole weeks
+    // is lossy in the direction that matters: the Goal screen's steppers set a
+    // rate, and round-tripping 0.95 kg/week through `ceil(3 / 0.95) = 4` gave
+    // back 0.75 — the card then showed a target 220 kcal from the one the
+    // chosen rate implies. Onboarding still asks for a timeframe and still
+    // gets exactly the old behaviour.
+    final requestedRate = r._rate ?? totalChangeKg / requestedWeeks;
+
+    final requestedDate = _dateAfterWeeks(
+      r.today,
+      r._rate == null
+          ? requestedWeeks.toDouble()
+          : math.min(maxProjectionWeeks, totalChangeKg / r._rate!),
+    );
 
     var rate = requestedRate;
     var reason = <AdjustmentReason>[];

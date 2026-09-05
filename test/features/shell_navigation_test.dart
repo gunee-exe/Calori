@@ -180,4 +180,82 @@ void main() {
       expect(entries, hasLength(1));
     });
   });
+
+  testWidgets('a result card is usable again after logging from it', (
+    tester,
+  ) async {
+    await pumpShell(tester);
+
+    container
+        .read(shellScreenControllerProvider.notifier)
+        .go(ShellScreen.search);
+    await tester.pumpAndSettle();
+
+    container.read(searchQueryProvider.notifier).set('banana');
+    await waitFor(
+      tester,
+      () => container.read(searchResultsProvider).value?.isNotEmpty ?? false,
+      'the search never returned results for "banana"',
+    );
+
+    Future<void> logFirstResult() async {
+      // Scrolled into view first. Saving scrolls the list to reach the button,
+      // and the shell's IndexedStack keeps that scroll position — so on the
+      // second pass the first card sits above the viewport and a tap on its
+      // centre lands somewhere else entirely.
+      final card = find.byType(FoodResultCard).first;
+      await tester.ensureVisible(card);
+      await tester.pumpAndSettle();
+
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+
+      final save = find.text('Add to log');
+      await tester.ensureVisible(save);
+      await tester.pumpAndSettle();
+      await tester.tap(save);
+      await tester.pump();
+    }
+
+    await logFirstResult();
+    await waitFor(
+      tester,
+      () => container.read(shellScreenControllerProvider) == ShellScreen.home,
+      'the first save never returned the shell to Home',
+    );
+
+    // Back to search. The card was never disposed — SearchScreen lives in the
+    // shell's IndexedStack — so a `_saving` flag left true survived here,
+    // showing "Saving…" forever and refusing every later attempt at the guard
+    // on the way in. Only the shell-destination path was affected, because
+    // popping a pushed route disposes the card and hides it.
+    container
+        .read(shellScreenControllerProvider.notifier)
+        .go(ShellScreen.search);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byType(FoodResultCard).first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Saving…'),
+      findsNothing,
+      reason: 'the card is still stuck in its saving state',
+    );
+
+    await logFirstResult();
+    await waitFor(
+      tester,
+      () => container.read(shellScreenControllerProvider) == ShellScreen.home,
+      'the card refused to save a second time',
+    );
+
+    await tester.runAsync(() async {
+      final entries = await container
+          .read(diaryRepositoryProvider)
+          .watchEntriesForDay(container.read(selectedDayProvider))
+          .first;
+      expect(entries, hasLength(2), reason: 'the second log did not land');
+    });
+  });
 }

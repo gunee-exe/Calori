@@ -19,6 +19,7 @@ void main() {
     double targetWeightKg = 70,
     ActivityLevel activity = ActivityLevel.moderate,
     int weeks = 16,
+    double? weeklyRateKg,
   }) => GoalRequest(
     sex: sex,
     age: age,
@@ -27,6 +28,7 @@ void main() {
     targetWeightKg: targetWeightKg,
     activity: activity,
     weeks: weeks,
+    weeklyRateKg: weeklyRateKg,
     today: today,
   );
 
@@ -202,6 +204,96 @@ void main() {
     test('targets are round numbers, never falsely precise', () {
       final accepted = GoalEngine.calculate(request()) as GoalAccepted;
       expect(accepted.target.dailyKcal % 10, 0);
+    });
+  });
+
+
+  group('a chosen rate is the rate used', () {
+    /// The Goal screen sets a rate; onboarding sets a timeframe.
+    ///
+    /// The rate used to be converted into whole weeks and divided back out by
+    /// the engine, which quantised it. At 95 kg aiming for 92 kg at 1%/week,
+    /// `ceil(3 / 0.95)` took 3.16 weeks to 4 and the rate came back as
+    /// 0.75 kg/week — a target 220 kcal above what the user actually chose.
+    test('the target follows the rate, not a rounded number of weeks', () {
+      for (final weightKg in [55.0, 62.0, 78.0, 95.0]) {
+        for (final percent in [0.2, 0.3, 0.5, 0.7, 1.0]) {
+          for (final drop in [3.0, 8.0, 15.0]) {
+            final weekly = weightKg * percent / 100;
+            final result = GoalEngine.calculate(
+              request(
+                weightKg: weightKg,
+                targetWeightKg: weightKg - drop,
+                // The quantised figure the screen still sends for the "you
+                // asked for this date" comparison. It must not drive the rate.
+                weeks: (drop / weekly).ceil(),
+                weeklyRateKg: weekly,
+              ),
+            );
+
+            final target = switch (result) {
+              GoalAccepted(:final target) => target,
+              GoalAdjusted(:final target) => target,
+              GoalRefused() => null,
+            };
+            if (target == null) continue;
+
+            final where = '$weightKg kg, $percent%/week, -$drop kg';
+
+            expect(
+              target.ratePercentPerWeek,
+              closeTo(percent, 0.0001),
+              reason: 'the rate came back changed at $where',
+            );
+
+            final expected =
+                ((target.tdee - weekly * GoalEngine.kcalPerKg / 7) / 10)
+                    .round() *
+                10;
+
+            // Below the floor the engine deliberately clamps, which is its own
+            // tested behaviour and not what this is about.
+            if (expected < Sex.male.calorieFloor) continue;
+
+            expect(
+              target.dailyKcal,
+              expected,
+              reason: 'the target does not match the chosen rate at $where',
+            );
+          }
+        }
+      }
+    });
+
+    test('the worst case from the bug report', () {
+      // 95 kg -> 92 kg at 1%/week. Shown 1360, should be 1140.
+      const weekly = 0.95;
+      final target =
+          (GoalEngine.calculate(
+                    request(
+                      weightKg: 95,
+                      targetWeightKg: 92,
+                      weeks: 4,
+                      weeklyRateKg: weekly,
+                    ),
+                  )
+                  as GoalAccepted)
+              .target;
+
+      expect(
+        target.dailyKcal,
+        ((target.tdee - weekly * GoalEngine.kcalPerKg / 7) / 10).round() * 10,
+      );
+    });
+
+    test('without a rate the timeframe still decides, as onboarding needs', () {
+      // The old path, unchanged: no weeklyRateKg means the rate comes from the
+      // number of weeks, which is what the onboarding slider asks for.
+      final target =
+          (GoalEngine.calculate(request(weeks: 16)) as GoalAccepted).target;
+
+      expect(target.dailyKcal, 2160);
+      expect(target.proteinG, 140);
     });
   });
 
