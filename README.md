@@ -15,6 +15,27 @@ or dietitian.
 
 ---
 
+## What it looks like
+
+<p align="center">
+  <img src="Ui/Screenshot%202026-08-28%20180542.png" alt="Today" width="19%">
+  <img src="Ui/Screenshot%202026-08-28%20180659.png" alt="Capture" width="19%">
+  <img src="Ui/Screenshot%202026-08-28%20180719.png" alt="Add food" width="19%">
+  <img src="Ui/Screenshot%202026-08-28%20180614.png" alt="Calendar" width="19%">
+  <img src="Ui/Screenshot%202026-08-28%20180628.png" alt="Goal" width="19%">
+</p>
+
+<p align="center"><em>Today &middot; Capture &middot; Add food &middot; Calendar &middot; Goal</em></p>
+
+The palette, spacing and motion come from
+[`Ui/Calorie Tracker v3 - Bright Blue.dc.html`](Ui/Calorie%20Tracker%20v3%20-%20Bright%20Blue.dc.html),
+the clickable prototype that is the visual source of truth, transcribed literally
+into [`lib/core/theme/tokens.dart`](lib/core/theme/tokens.dart). One rule governs
+the whole scheme: **there is no red.** Going over budget is information, not
+failure, so over-target is a desaturated grey-blue.
+
+---
+
 ## What it does
 
 - **Onboarding that can say no.** The goal engine refuses targets below a

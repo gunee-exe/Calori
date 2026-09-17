@@ -54,3 +54,8 @@ worker/.wrangler/
 # Real Worker endpoint and shared secret. Copy worker-config.example.json to
 # worker-config.json and fill it in; never commit the filled-in copy.
 worker-config.json
+
+# Launch-video working directory: rendered MP4, bundled music and SFX, vendored
+# fonts and snapshot frames. Regenerate it; do not commit it. The music bed in
+# particular is third-party and its licence terms are not documented.
+brag-output/
